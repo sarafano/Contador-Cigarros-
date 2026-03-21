@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Controlo</title>
+    <style>
+        :root { --p: #2ecc71; --bg: #f4f7f6; --txt: #2c3e50; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 80%; max-width: 300px; }
+        h1 { font-size: 1.2rem; margin-bottom: 0.5rem; opacity: 0.7; }
+        #contador { font-size: 5rem; font-weight: bold; margin: 1rem 0; color: var(--p); }
+        button { background: var(--p); border: none; color: white; padding: 1.5rem; border-radius: 50%; width: 80px; height: 80px; font-size: 2rem; cursor: pointer; box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3); transition: transform 0.1s; }
+        button:active { transform: scale(0.9); }
+        .stats { margin-top: 1.5rem; font-size: 0.9rem; border-top: 1px solid #eee; padding-top: 1rem; }
+        .reset { margin-top: 2rem; font-size: 0.7rem; color: #999; cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>CIGARROS HOJE</h1>
+        <div id="contador">0</div>
+        <button onclick="adicionar()">+</button>
+        
+        <div class="stats">
+            Gasto estimado: <span id="gasto">0.00</span>€
+        </div>
+        <div class="reset" onclick="resetar()">Reiniciar dia</div>
+    </div>
+
+    <script>
+        let total = localStorage.getItem('cigarros') ? parseInt(localStorage.getItem('cigarros')) : 0;
+        const precoUnidade = 0.25; // Podes ajustar o preço aqui
+
+        function atualizarDisplay() {
+            document.getElementById('contador').innerText = total;
+            document.getElementById('gasto').innerText = (total * precoUnidade).toFixed(2);
+            localStorage.setItem('cigarros', total);
+        }
+
+        function adicionar() {
+            total++;
+            atualizarDisplay();
+        }
+
+        function resetar() {
+            if(confirm("Queres mesmo reiniciar o contador?")) {
+                total = 0;
+                atualizarDisplay();
+            }
+        }
+
+        atualizarDisplay();
+    </script>
+</body>
+</html>
