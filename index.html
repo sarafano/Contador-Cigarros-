@@ -132,6 +132,13 @@
         }
 
         atualizarDisplay();
+            function resetarDia() {
+    if(confirm("Tens a certeza? Isto vai apagar todos os registos de HOJE.")) {
+        dados[HOJE] = { total: 0, gatilhos: {} };
+        localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+        atualizarDisplay();
+    }
+                    }
     </script>
 </body>
 </html>
