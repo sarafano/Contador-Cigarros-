@@ -3,32 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo Ultra</title>
+    <title>Meu Controlo v4</title>
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --p: #2ecc71; --bg: #f8f9fa; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
-        
-        /* Design Idêntico à imagem */
         .card { background: white; padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; box-sizing: border-box; position: relative; }
         h1 { font-size: 0.9rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
-        
         .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 20px auto; box-shadow: 0 10px 20px rgba(46, 204, 113, 0.2); }
         .gatilho-texto { font-size: 0.9rem; color: #999; margin-bottom: 10px; }
         .btn-reset { font-size: 0.8rem; color: #ccc; cursor: pointer; text-decoration: underline; }
-
-        /* Botão SOS discreto */
         .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
-        
         .resumo-title { color: var(--blue); font-weight: bold; font-size: 0.9rem; text-align: left; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px; display: block; }
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; color: #555; }
-        
-        /* Gráfico */
         .chart-box { margin-top: 20px; height: 180px; }
-
-        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
         .modal-overlay.active { visibility: visible; opacity: 1; }
         .modal { background: white; width: 85%; max-width: 310px; padding: 20px; border-radius: 25px; text-align: center; }
@@ -45,21 +35,22 @@
         <div id="contador">0</div>
         <button class="btn-add" onclick="abrirModal()">+</button>
         <div class="gatilho-texto">Gatilho: <span id="top-gatilho" style="font-weight:bold; color:#777">-</span></div>
+        <div class="stat-row" style="justify-content: center; font-size: 0.8rem; color: var(--danger);">
+            <span>Vida perdida (hoje):</span>&nbsp;<span id="vida-perdida-hoje" style="font-weight:bold">0min</span>
+        </div>
         <div class="btn-reset" onclick="resetarDia()">Reiniciar dia</div>
     </div>
 
     <div class="card" style="text-align: left; padding: 1.5rem;">
-        <span class="resumo-title">RESUMO 30 DIAS</span>
-        <div class="stat-row"><span>Total fumados:</span> <span id="total-30" style="font-weight:bold">0</span></div>
-        <div class="stat-row"><span>Média diária:</span> <span id="media-30" style="font-weight:bold">0.0</span></div>
+        <span class="resumo-title">RESUMO MENSAL (30 DIAS)</span>
+        <div class="stat-row"><span>Ontem:</span> <span id="total-ontem" style="font-weight:bold">-</span></div>
+        <div class="stat-row"><span>Total no mês:</span> <span id="total-30" style="font-weight:bold">0</span></div>
         <div class="stat-row"><span>Gasto total:</span> <span id="gasto-30" style="color:var(--danger); font-weight:bold">0.00€</span></div>
+        
         <div style="border-top: 1px dashed #eee; margin: 10px 0;"></div>
-        <div class="stat-row"><span>Poupança Real*:</span> <span id="poupanca-30" style="color:var(--p); font-weight:bold">0.00€</span></div>
         
-        <div class="stat-row"><span>Vida recuperada:</span> <span id="vida-ganha" style="color:var(--p); font-weight:bold">-</span></div>
-        <div class="stat-row"><span>Tempo sem fumar (Total):</span> <span id="tempo-limpo" style="color:var(--blue); font-weight:bold">-</span></div>
-        
-        <div style="font-size: 0.65rem; color: #ccc; margin-top: 5px;">*Em relação a 20 cigarros/dia (1 maço).</div>
+        <div class="stat-row"><span>Vida perdida (Mês):</span> <span id="vida-perdida-mes" style="color:var(--danger); font-weight:bold">0min</span></div>
+        <div class="stat-row"><span>Média diária:</span> <span id="media-30" style="font-weight:bold">0.0</span></div>
         
         <div class="chart-box">
             <canvas id="graficoGatilhos"></canvas>
@@ -68,7 +59,7 @@
 
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
-            <h3 style="margin:0">Porquê este?</h3>
+            <h3 style="margin:0">Motivo:</h3>
             <div class="trigger-grid">
                 <button class="btn-opt" onclick="registar('Stress')">Stress</button>
                 <button class="btn-opt" onclick="registar('Café')">Café</button>
@@ -83,53 +74,50 @@
     <div class="modal-overlay" id="modalSOS">
         <div class="modal">
             <h3 style="margin:0; color:var(--sos)">Aguenta Firme! 🔥</h3>
-            <div style="font-size: 1.1rem; color: #555; margin: 20px 0; line-height: 1.4; font-weight: 600;">
-                A vontade de fumar dura apenas de 3 a 5 minutos.<br><br>
-                <span style="color:var(--blue); font-weight:bold">DESAFIO:</span> Bebe um copo de água gelada agora!
-            </div>
-            <p style="font-size: 0.8rem; color: #999;">Isso vai passar. Tu és mais forte que a nicotina.</p>
-            <div class="btn-opt btn-full" style="background:var(--sos); color:white; margin-top:15px;" onclick="fecharSOS()">Vou tentar!</div>
+            <p style="font-size: 1rem; margin: 15px 0;">A vontade passa em 3 minutos. Bebe água agora!</p>
+            <button class="btn-opt btn-full" style="background:var(--sos); color:white;" onclick="fecharSOS()">Vou tentar!</button>
         </div>
     </div>
 
     <script>
         const PRECO = 0.25;
-        const META = 20;
+        const MIN_POR_CIGARRO = 11;
         const HOJE = new Date().toISOString().split('T')[0];
-        const DATA_INICIO_CHAVE = 'dataInicioControlo'; // Nova chave para o tempo limpo total
-
+        
         let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
         let chart = null;
 
-        // Inicia a data de controle se for a primeira vez
-        if (!localStorage.getItem(DATA_INICIO_CHAVE)) {
-            localStorage.setItem(DATA_INICIO_CHAVE, new Date().toISOString());
-        }
-
         if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
 
-        // Modais
-        const mMOT = document.getElementById('modalOverlay');
-        const mSOS = document.getElementById('modalSOS');
-        function abrirModal() { mMOT.classList.add('active'); }
-        function fecharModal() { mMOT.classList.remove('active'); }
-        function abrirSOS() { mSOS.classList.add('active'); }
-        function fecharSOS() { mSOS.classList.remove('active'); }
+        function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
+        function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+        function abrirSOS() { document.getElementById('modalSOS').classList.add('active'); }
+        function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
+
+        function formatarTempo(minutos) {
+            if (minutos < 60) return minutos + "min";
+            const h = Math.floor(minutos / 60);
+            const m = minutos % 60;
+            return h + "h " + m + "min";
+        }
 
         function atualizar() {
-            // Hoje
-            document.getElementById('contador').innerText = dados[HOJE].total;
-            
-            // 30 Dias
+            const dHoje = dados[HOJE];
+            document.getElementById('contador').innerText = dHoje.total;
+            document.getElementById('vida-perdida-hoje').innerText = formatarTempo(dHoje.total * MIN_POR_CIGARRO);
+
+            // Cálculo Ontem
+            const ontemObj = new Date();
+            ontemObj.setDate(ontemObj.getDate() - 1);
+            const ontemISO = ontemObj.toISOString().split('T')[0];
+            document.getElementById('total-ontem').innerText = dados[ontemISO] ? dados[ontemISO].total : "0";
+
+            // Mensal
             let total30 = 0;
-            let totalFumadosEver = 0; // Para a vida recuperada total
             let gatilhosAcum = {};
-            const datas = Object.keys(dados).sort().reverse();
-            const ultimas30 = datas.slice(0, 30);
+            const datas = Object.keys(dados).sort().reverse().slice(0, 30);
 
-            datas.forEach(d => { totalFumadosEver += dados[d].total; }); // Soma total de sempre
-
-            ultimas30.forEach(d => {
+            datas.forEach(d => {
                 total30 += dados[d].total;
                 for (let [g, q] of Object.entries(dados[d].gatilhos)) {
                     gatilhosAcum[g] = (gatilhosAcum[g] || 0) + q;
@@ -137,27 +125,12 @@
             });
 
             document.getElementById('total-30').innerText = total30;
-            document.getElementById('media-30').innerText = ultimas30.length > 0 ? (total30 / ultimas30.length).toFixed(1) : 0.0;
             document.getElementById('gasto-30').innerText = (total30 * PRECO).toFixed(2) + "€";
-            
-            // Poupança (em relação a metas de maços)
-            const poup = ((META * datas.length) - totalFumadosEver) * PRECO;
-            document.getElementById('poupanca-30').innerText = (poup > 0 ? poup : 0).toFixed(2) + "€";
+            document.getElementById('vida-perdida-mes').innerText = formatarTempo(total30 * MIN_POR_CIGARRO);
+            document.getElementById('media-30').innerText = datas.length > 0 ? (total30 / datas.length).toFixed(1) : 0.0;
 
-            // --- CÁLCULOS ULTRA ---
-            // 1. Vida Recuperada (Total Ever - Comparando com fumaças normais de meta)
-            // Se cada cigarro tira 11 min, cada cigarro NÃO FUMADO ganha 11 min.
-            const minGanhos = ((META * datas.length) - totalFumadosEver) * 11;
-            document.getElementById('vida-ganha').innerText = formatarTempo(minGanhos > 0 ? minGanhos : 0);
-
-            // 2. Tempo Sem Fumar (Total)
-            const dInicio = new Date(localStorage.getItem(DATA_INICIO_CHAVE));
-            const diffMinutos = Math.floor((new Date() - dInicio) / 60000);
-            document.getElementById('tempo-limpo').innerText = formatarTempo(diffMinutos);
-
-            // Gatilho Principal Hoje
             let topG = '-', max = 0;
-            for (let [g, q] of Object.entries(dados[HOJE].gatilhos)) {
+            for (let [g, q] of Object.entries(dHoje.gatilhos)) {
                 if(q > max) { max = q; topG = g; }
             }
             document.getElementById('top-gatilho').innerText = max > 0 ? topG : "-";
@@ -166,25 +139,11 @@
             renderChart(gatilhosAcum);
         }
 
-        // Função para formatar minutos em Dias/Horas/Min
-        function formatarTempo(minutosTotais) {
-            if (minutosTotais === 0) return "-";
-            const dias = Math.floor(minutosTotais / 1440);
-            const horas = Math.floor((minutosTotais % 1440) / 60);
-            const minutos = minutosTotais % 60;
-            let str = "";
-            if (dias > 0) str += `${dias}d `;
-            if (horas > 0 || dias > 0) str += `${horas}h `;
-            str += `${minutos}min`;
-            return str;
-        }
-
         function renderChart(obj) {
             const ctx = document.getElementById('graficoGatilhos').getContext('2d');
             if (chart) chart.destroy();
             const labels = Object.keys(obj);
             if (labels.length === 0) return;
-
             chart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -207,7 +166,7 @@
         }
 
         function resetarDia() {
-            if(confirm("Zerar hoje? (Não afeta o tempo limpo total)")) {
+            if(confirm("Reiniciar hoje?")) {
                 dados[HOJE] = { total: 0, gatilhos: {} };
                 atualizar();
             }
