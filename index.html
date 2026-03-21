@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo v5</title>
+    <title>Meu Controlo v6</title>
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -19,6 +19,7 @@
         #seletorMes { border: none; background: #eee; border-radius: 10px; padding: 5px; font-size: 0.8rem; color: var(--blue); font-weight: bold; outline: none; }
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; color: #555; }
         .chart-box { margin-top: 20px; height: 180px; }
+        .btn-backup { width: 100%; background: none; border: 1px solid #eee; color: #aaa; padding: 10px; border-radius: 15px; font-size: 0.75rem; cursor: pointer; margin-top: 15px; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
         .modal-overlay.active { visibility: visible; opacity: 1; }
         .modal { background: white; width: 85%; max-width: 310px; padding: 20px; border-radius: 25px; text-align: center; }
@@ -27,7 +28,6 @@
     </style>
 </head>
 <body>
-
     <div class="card">
         <button class="btn-sos" onclick="abrirSOS()">SOS 🔥</button>
         <h1>HOJE</h1>
@@ -37,135 +37,15 @@
         <div style="font-size: 0.8rem; color: var(--danger); font-weight: bold;">Vida perdida: <span id="vida-hoje">0min</span></div>
         <div style="margin-top:15px; font-size: 0.8rem; color: #ccc; cursor: pointer; text-decoration: underline;" onclick="resetarDia()">Reiniciar dia</div>
     </div>
-
     <div class="card" style="text-align: left; padding: 1.5rem;">
         <div class="resumo-header">
             <span class="resumo-title">HISTÓRICO</span>
-            <select id="seletorMes" onchange="atualizarEstatisticasMensais()">
-                </select>
+            <select id="seletorMes" onchange="atualizarEstatisticasMensais()"></select>
         </div>
-
         <div class="stat-row"><span>Ontem:</span> <span id="total-ontem" style="font-weight:bold">-</span></div>
         <div class="stat-row"><span>Total no mês:</span> <span id="total-mes" style="font-weight:bold">0</span></div>
         <div class="stat-row"><span>Gasto total:</span> <span id="gasto-mes" style="color:var(--danger); font-weight:bold">0.00€</span></div>
-        <div style="border-top: 1px dashed #eee; margin: 10px 0;"></div>
         <div class="stat-row"><span>Vida perdida (Mês):</span> <span id="vida-mes" style="color:var(--danger); font-weight:bold">0min</span></div>
-        <div class="stat-row"><span>Média diária:</span> <span id="media-mes" style="font-weight:bold">0.0</span></div>
-        
-        <div class="chart-box">
-            <canvas id="graficoGatilhos"></canvas>
-        </div>
+        <div class="chart-box"><canvas id="graficoGatilhos"></canvas></div>
+        <button class="btn-backup" onclick="exportarDados()">📧 Enviar Backup por E-mail</button>
     </div>
-
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <h3 style="margin:0">Motivo:</h3>
-            <div class="trigger-grid">
-                <button class="btn-opt" onclick="registar('Stress')">Stress</button>
-                <button class="btn-opt" onclick="registar('Café')">Café</button>
-                <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
-                <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
-                <button class="btn-opt" style="grid-column: span 2; background: #e8f8f0;" onclick="registar('Pós-refeição')">Pós-refeição</button>
-            </div>
-            <div style="margin-top:20px; color:var(--danger); font-size:0.8rem;" onclick="fecharModal()">CANCELAR</div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modalSOS">
-        <div class="modal">
-            <h3 style="color:var(--sos)">Aguenta! 🔥</h3>
-            <p>Bebe um copo de água gelada. A vontade passa em 3 min.</p>
-            <button class="btn-opt" style="width:100%; background:var(--sos); color:white;" onclick="fecharSOS()">Vou conseguir!</button>
-        </div>
-    </div>
-
-    <script>
-        const PRECO = 0.25;
-        const MIN_CIG = 11;
-        const HOJE = new Date().toISOString().split('T')[0];
-        let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        let chart = null;
-
-        if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
-
-        function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
-        function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-        function abrirSOS() { document.getElementById('modalSOS').classList.add('active'); }
-        function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
-
-        function formatarTempo(min) {
-            if (min < 60) return min + "min";
-            return Math.floor(min/60) + "h " + (min%60) + "min";
-        }
-
-        function popularSeletor() {
-            const seletor = document.getElementById('seletorMes');
-            const mesesDisponiveis = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
-            const mesAtual = HOJE.substring(0, 7);
-            
-            seletor.innerHTML = mesesDisponiveis.map(m => `<option value="${m}" ${m===mesAtual?'selected':''}>${m}</option>`).join('');
-        }
-
-        function atualizar() {
-            // Hoje
-            document.getElementById('contador').innerText = dados[HOJE].total;
-            document.getElementById('vida-hoje').innerText = formatarTempo(dados[HOJE].total * MIN_CIG);
-            
-            let topG = '-', max = 0;
-            for (let [g, q] of Object.entries(dados[HOJE].gatilhos)) { if(q > max) { max = q; topG = g; } }
-            document.getElementById('top-gatilho').innerText = max > 0 ? topG : "-";
-
-            // Ontem
-            const ontemObj = new Date(); ontemObj.setDate(ontemObj.getDate() - 1);
-            const ontemISO = ontemObj.toISOString().split('T')[0];
-            document.getElementById('total-ontem').innerText = dados[ontemISO] ? dados[ontemISO].total : "0";
-
-            popularSeletor();
-            atualizarEstatisticasMensais();
-            localStorage.setItem('dadosCigarros', JSON.stringify(dados));
-        }
-
-        function atualizarEstatisticasMensais() {
-            const mesSelecionado = document.getElementById('seletorMes').value;
-            let totalMes = 0, gatilhosMes = {}, diasComRegisto = 0;
-
-            Object.keys(dados).filter(d => d.startsWith(mesSelecionado)).forEach(d => {
-                totalMes += dados[d].total;
-                diasComRegisto++;
-                for (let [g, q] of Object.entries(dados[d].gatilhos)) {
-                    gatilhosMes[g] = (gatilhosMes[g] || 0) + q;
-                }
-            });
-
-            document.getElementById('total-mes').innerText = totalMes;
-            document.getElementById('gasto-mes').innerText = (totalMes * PRECO).toFixed(2) + "€";
-            document.getElementById('vida-mes').innerText = formatarTempo(totalMes * MIN_CIG);
-            document.getElementById('media-mes').innerText = diasComRegisto > 0 ? (totalMes / diasComRegisto).toFixed(1) : "0.0";
-
-            renderChart(gatilhosMes);
-        }
-
-        function renderChart(obj) {
-            const ctx = document.getElementById('graficoGatilhos').getContext('2d');
-            if (chart) chart.destroy();
-            const labels = Object.keys(obj);
-            if (labels.length === 0) return;
-            chart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'], borderWidth: 0 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } } }
-            });
-        }
-
-        function registar(g) {
-            dados[HOJE].total++;
-            dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1;
-            fecharModal(); atualizar();
-        }
-
-        function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
-
-        atualizar();
-    </script>
-</body>
-</html>
