@@ -49,3 +49,94 @@
         <div class="chart-box"><canvas id="graficoGatilhos"></canvas></div>
         <button class="btn-backup" onclick="exportarDados()">📧 Enviar Backup por E-mail</button>
     </div>
+        <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 style="margin:0">Motivo:</h3>
+            <div class="trigger-grid">
+                <button class="btn-opt" onclick="registar('Stress')">Stress</button>
+                <button class="btn-opt" onclick="registar('Café')">Café</button>
+                <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
+                <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
+                <button class="btn-opt" style="grid-column: span 2; background: #e8f8f0;" onclick="registar('Pós-refeição')">Pós-refeição</button>
+            </div>
+            <div style="margin-top:20px; color:var(--danger); font-size:0.8rem;" onclick="fecharModal()">CANCELAR</div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="modalSOS">
+        <div class="modal">
+            <h3 style="color:var(--sos)">Aguenta! 🔥</h3>
+            <p>Bebe um copo de água gelada. A vontade passa em 3 min.</p>
+            <button class="btn-opt" style="width:100%; background:var(--sos); color:white;" onclick="fecharSOS()">Vou conseguir!</button>
+        </div>
+    </div>
+    <script>
+        const PRECO = 0.25; const MIN_CIG = 11; const HOJE = new Date().toISOString().split('T')[0];
+        let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        let chart = null;
+        if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+        function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
+        function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+        function abrirSOS() { document.getElementById('modalSOS').classList.add('active'); }
+        function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
+        function formatarTempo(min) { if (min < 60) return min + "min"; return Math.floor(min/60) + "h " + (min%60) + "min"; }
+        
+        function popularSeletor() {
+            const seletor = document.getElementById('seletorMes');
+            const mesesDisponiveis = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
+            const mesAtual = HOJE.substring(0, 7);
+            seletor.innerHTML = mesesDisponiveis.map(m => `<option value="${m}" ${m===mesAtual?'selected':''}>${m}</option>`).join('');
+        }
+
+        function atualizar() {
+            document.getElementById('contador').innerText = dados[HOJE].total;
+            document.getElementById('vida-hoje').innerText = formatarTempo(dados[HOJE].total * MIN_CIG);
+            let topG = '-', max = 0;
+            for (let [g, q] of Object.entries(dados[HOJE].gatilhos)) { if(q > max) { max = q; topG = g; } }
+            document.getElementById('top-gatilho').innerText = max > 0 ? topG : "-";
+            const ontemObj = new Date(); ontemObj.setDate(ontemObj.getDate() - 1);
+            const ontemISO = ontemObj.toISOString().split('T')[0];
+            document.getElementById('total-ontem').innerText = dados[ontemISO] ? dados[ontemISO].total : "0";
+            popularSeletor(); atualizarEstatisticasMensais();
+            localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+        }
+
+        function atualizarEstatisticasMensais() {
+            const mesSelecionado = document.getElementById('seletorMes').value;
+            let totalMes = 0, gatilhosMes = {};
+            Object.keys(dados).filter(d => d.startsWith(mesSelecionado)).forEach(d => {
+                totalMes += dados[d].total;
+                for (let [g, q] of Object.entries(dados[d].gatilhos)) { gatilhosMes[g] = (gatilhosMes[g] || 0) + q; }
+            });
+            document.getElementById('total-mes').innerText = totalMes;
+            document.getElementById('gasto-mes').innerText = (totalMes * PRECO).toFixed(2) + "€";
+            document.getElementById('vida-mes').innerText = formatarTempo(totalMes * MIN_CIG);
+            renderChart(gatilhosMes);
+        }
+
+        function exportarDados() {
+            let texto = "MEU BACKUP - CONTROLO DE TABACO\n\n";
+            Object.keys(dados).sort().reverse().forEach(dia => {
+                const d = dados[dia];
+                texto += `${dia}: ${d.total} cigarros (Perda: ${d.total * MIN_CIG} min)\n`;
+            });
+            const link = `mailto:?subject=Meu Backup Tabaco&body=${encodeURIComponent(texto)}`;
+            window.location.href = link;
+        }
+
+        function renderChart(obj) {
+            const ctx = document.getElementById('graficoGatilhos').getContext('2d');
+            if (chart) chart.destroy();
+            const labels = Object.keys(obj); if (labels.length === 0) return;
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'], borderWidth: 0 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } } }
+            });
+        }
+
+        function registar(g) { dados[HOJE].total++; dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; fecharModal(); atualizar(); }
+        function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
+        atualizar();
+    </script>
+</body>
+</html>
