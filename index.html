@@ -3,146 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo Pro</title>
+    <title>Meu Controlo</title>
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --p: #2ecc71; --bg: #f4f7f6; --txt: #2c3e50; --danger: #e74c3c; --accent: #3498db; }
+        :root { --p: #2ecc71; --bg: #f8f9fa; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
         
-        /* Cartão de Hoje */
-        .card { background: white; padding: 1.5rem; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; width: 85%; max-width: 320px; margin-bottom: 15px; }
-        h1 { font-size: 0.9rem; opacity: 0.5; text-transform: uppercase; margin: 0; letter-spacing: 1px; }
-        #contador { font-size: 5.5rem; font-weight: 800; margin: 5px 0; color: var(--p); line-height: 1; }
+        /* Estilo idêntico à tua imagem */
+        .card { background: white; padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; box-sizing: border-box; }
+        h1 { font-size: 0.9rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
         
-        /* Botão + */
-        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 80px; height: 80px; font-size: 3rem; cursor: pointer; margin: 15px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(46,204,113,0.3); transition: 0.1s; }
-        .btn-add:active { transform: scale(0.9); }
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 20px auto; box-shadow: 0 10px 20px rgba(46, 204, 113, 0.2); }
+        .gatilho-texto { font-size: 0.9rem; color: #999; margin-bottom: 10px; }
+        .btn-reset { font-size: 0.8rem; color: #ccc; cursor: pointer; text-decoration: underline; }
 
-        /* Botão Reiniciar */
-        .btn-reset { font-size: 0.75rem; color: #bbb; cursor: pointer; text-decoration: underline; margin-bottom: 10px; display: inline-block; }
-
-        /* Cartão Histórico */
-        .history-card { background: #fff; width: 85%; max-width: 320px; border-radius: 20px; padding: 1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.05); box-sizing: border-box; }
-        .history-title { font-weight: bold; font-size: 0.85rem; margin-bottom: 15px; display: block; color: var(--accent); border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; text-transform: uppercase; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem; }
-        .poupanca-val { color: var(--p); font-weight: bold; }
+        .resumo-title { color: var(--blue); font-weight: bold; font-size: 0.9rem; text-align: left; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px; display: block; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; color: #555; }
         
-        /* Modal de Gatilhos */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(4px); }
+        /* Gráfico */
+        .chart-box { margin-top: 20px; height: 180px; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal { background: white; width: 85%; max-width: 300px; padding: 1.5rem; border-radius: 25px; text-align: center; }
-        .trigger-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .btn-trigger { background: #f8f9f9; border: 1px solid #eee; padding: 15px; border-radius: 15px; font-weight: bold; font-size: 0.9rem; color: var(--txt); cursor: pointer; }
-        .btn-trigger:active { background: #eee; }
-        .pos-refeicao { grid-column: span 2; background: #e8f8f0; color: var(--p); border-color: #d1f2e1; }
+        .modal { background: white; width: 85%; max-width: 300px; padding: 20px; border-radius: 25px; text-align: center; }
+        .trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-opt { background: #f8f9fa; border: 1px solid #eee; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; }
+        .btn-full { grid-column: span 2; background: #e8f8f0; color: var(--p); }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h1>Hoje</h1>
+        <h1>HOJE</h1>
         <div id="contador">0</div>
         <button class="btn-add" onclick="abrirModal()">+</button>
-        <div class="stat-row" style="justify-content: center; gap: 10px; opacity: 0.7;">
-            <span>Gatilho:</span> <span id="top-gatilho" style="font-weight:bold">-</span>
-        </div>
+        <div class="gatilho-texto">Gatilho: <span id="top-gatilho" style="font-weight:bold; color:#777">-</span></div>
         <div class="btn-reset" onclick="resetarDia()">Reiniciar dia</div>
     </div>
 
-    <div class="history-card">
-        <span class="history-title">Resumo 30 Dias</span>
-        <div class="stat-row">
-            <span>Total fumados:</span> <span id="total-30" style="font-weight:bold">0</span>
+    <div class="card" style="text-align: left; padding: 1.5rem;">
+        <span class="resumo-title">RESUMO 30 DIAS</span>
+        <div class="stat-row"><span>Total fumados:</span> <span id="total-30" style="font-weight:bold">0</span></div>
+        <div class="stat-row"><span>Média diária:</span> <span id="media-30" style="font-weight:bold">0.0</span></div>
+        <div class="stat-row"><span>Gasto total:</span> <span id="gasto-30" style="color:var(--danger); font-weight:bold">0.00€</span></div>
+        <div style="border-top: 1px dashed #eee; margin: 10px 0;"></div>
+        <div class="stat-row"><span>Dinheiro poupado*:</span> <span id="poupanca-30" style="color:var(--p); font-weight:bold">0.00€</span></div>
+        <div style="font-size: 0.65rem; color: #ccc; margin-top: 5px;">*Poupado em relação a 20 cigarros/dia.</div>
+        
+        <div class="chart-box">
+            <canvas id="graficoGatilhos"></canvas>
         </div>
-        <div class="stat-row">
-            <span>Média diária:</span> <span id="media-30" style="font-weight:bold">0</span>
-        </div>
-        <div class="stat-row">
-            <span>Gasto total:</span> <span id="gasto-30" style="color:var(--danger); font-weight:bold">0.00€</span>
-        </div>
-        <div class="stat-row" style="border-top: 1px dashed #eee; padding-top: 12px; margin-top: 5px;">
-            <span>Dinheiro poupado*:</span> <span id="poupanca-30" class="poupanca-val">0.00€</span>
-        </div>
-        <p style="font-size: 0.6rem; color: #aaa; margin-top: 10px; line-height: 1.2;">*Poupado em relação a 20 cigarros/dia.</p>
     </div>
 
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
-            <h3 style="margin:0">Porquê agora?</h3>
-            <div class="trigger-options">
-                <button class="btn-trigger" onclick="registar('Stress')">Stress</button>
-                <button class="btn-trigger" onclick="registar('Café')">Café</button>
-                <button class="btn-trigger" onclick="registar('Tédio')">Tédio</button>
-                <button class="btn-trigger" onclick="registar('Hábito')">Hábito</button>
-                <button class="btn-trigger pos-refeicao" onclick="registar('Pós-refeição')">Pós-refeição</button>
+            <h3 style="margin:0">Motivo:</h3>
+            <div class="trigger-grid">
+                <button class="btn-opt" onclick="registar('Stress')">Stress</button>
+                <button class="btn-opt" onclick="registar('Café')">Café</button>
+                <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
+                <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
+                <button class="btn-opt btn-full" onclick="registar('Pós-refeição')">Pós-refeição</button>
             </div>
-            <div class="btn-reset" style="margin-top: 20px; color: var(--danger)" onclick="fecharModal()">Cancelar</div>
+            <div class="btn-reset" style="margin-top:20px; color:var(--danger)" onclick="fecharModal()">Cancelar</div>
         </div>
     </div>
 
     <script>
-        const PRECO_UNID = 0.25; // 5€ por maço de 20
-        const META_DIARIA = 20;  // Base para cálculo de poupança
+        const PRECO = 0.25;
+        const META = 20;
         const HOJE = new Date().toISOString().split('T')[0];
-        
         let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        let chart = null;
 
-        if (!dados[HOJE]) {
-            dados[HOJE] = { total: 0, gatilhos: {} };
-        }
+        if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
 
         function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
         function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
 
-        function atualizarDisplay() {
-            // Lógica de hoje
-            const dHoje = dados[HOJE];
-            document.getElementById('contador').innerText = dHoje.total;
+        function atualizar() {
+            // Hoje
+            document.getElementById('contador').innerText = dados[HOJE].total;
             
-            let top = '-', max = 0;
-            for (const [g, q] of Object.entries(dHoje.gatilhos)) {
-                if (q > max) { max = q; top = g; }
-            }
-            document.getElementById('top-gatilho').innerText = max > 0 ? top : "-";
-
-            // Lógica de 30 dias
+            // 30 Dias
             let total30 = 0;
-            let diasContados = 0;
-            const datas = Object.keys(dados).sort().reverse();
-            const ultimas30 = datas.slice(0, 30);
+            let gatilhosAcum = {};
+            const datas = Object.keys(dados).sort().reverse().slice(0, 30);
 
-            ultimas30.forEach(data => {
-                total30 += dados[data].total;
-                diasContados++;
+            datas.forEach(d => {
+                total30 += dados[d].total;
+                for (let [g, q] of Object.entries(dados[d].gatilhos)) {
+                    gatilhosAcum[g] = (gatilhosAcum[g] || 0) + q;
+                }
             });
 
-            const gasto30 = total30 * PRECO_UNID;
-            const poupanca30 = ((META_DIARIA * diasContados) - total30) * PRECO_UNID;
-
             document.getElementById('total-30').innerText = total30;
-            document.getElementById('media-30').innerText = diasContados > 0 ? (total30 / diasContados).toFixed(1) : 0;
-            document.getElementById('gasto-30').innerText = gasto30.toFixed(2) + "€";
-            document.getElementById('poupanca-30').innerText = (poupanca30 > 0 ? poupanca30 : 0).toFixed(2) + "€";
+            document.getElementById('media-30').innerText = datas.length > 0 ? (total30 / datas.length).toFixed(1) : 0;
+            document.getElementById('gasto-30').innerText = (total30 * PRECO).toFixed(2) + "€";
+            const poup = ((META * datas.length) - total30) * PRECO;
+            document.getElementById('poupanca-30').innerText = (poup > 0 ? poup : 0).toFixed(2) + "€";
+
+            // Gatilho Principal Hoje
+            let topG = '-', max = 0;
+            for (let [g, q] of Object.entries(dados[HOJE].gatilhos)) {
+                if(q > max) { max = q; topG = g; }
+            }
+            document.getElementById('top-gatilho').innerText = max > 0 ? topG : "-";
 
             localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+            renderChart(gatilhosAcum);
         }
 
-        function registar(motivo) {
+        function renderChart(obj) {
+            const ctx = document.getElementById('graficoGatilhos').getContext('2d');
+            if (chart) chart.destroy();
+            const labels = Object.keys(obj);
+            if (labels.length === 0) return;
+
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: Object.values(obj),
+                        backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } } }
+            });
+        }
+
+        function registar(g) {
             dados[HOJE].total++;
-            dados[HOJE].gatilhos[motivo] = (dados[HOJE].gatilhos[motivo] || 0) + 1;
-            atualizarDisplay();
+            dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1;
             fecharModal();
+            atualizar();
         }
 
         function resetarDia() {
-            if(confirm("Queres mesmo zerar o contador de HOJE?")) {
+            if(confirm("Reiniciar hoje?")) {
                 dados[HOJE] = { total: 0, gatilhos: {} };
-                atualizarDisplay();
+                atualizar();
             }
         }
 
-        // Iniciar
-        atualizarDisplay();
+        atualizar();
     </script>
 </body>
 </html>
