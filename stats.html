@@ -3,105 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estatísticas Avançadas v11</title>
+    <title>Estatísticas Avançadas v12</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #f8f9fa; --txt: #2c3e50; --blue: #3498db; --card: white; --danger: #e74c3c; --p: #2ecc71; }
+        :root { --bg: #f8f9fa; --txt: #2c3e50; --blue: #3498db; --card: white; --p: #2ecc71; }
         @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --txt: #eee; --card: #2d2d2d; } }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding: 20px; margin: 0; }
         
         .header { display: flex; align-items: center; margin-bottom: 20px; justify-content: space-between; }
-        .btn-back { background: var(--blue); color: white; padding: 10px 20px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 0.9rem; }
-        
-        /* Grelha de Mini Cartões */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .mini-card { background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
-        .mini-card span { font-size: 0.7rem; color: #888; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .mini-card b { font-size: 1.2rem; color: var(--blue); }
+        .btn-back { background: var(--blue); color: white; padding: 10px 20px; border-radius: 15px; text-decoration: none; font-weight: bold; }
 
-        .card { background: var(--card); padding: 20px; border-radius: 25px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        h2 { font-size: 0.9rem; text-transform: uppercase; color: #888; margin-top: 0; margin-bottom: 15px; }
-        .chart-box { height: 200px; margin-top: 10px; }
-        select { border: none; background: rgba(0,0,0,0.05); padding: 5px; border-radius: 8px; font-weight: bold; color: var(--blue); outline: none; }
+        /* Sistema de Abas */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { background: rgba(0,0,0,0.05); border: none; padding: 10px 15px; border-radius: 12px; color: var(--txt); font-weight: bold; white-space: nowrap; cursor: pointer; }
+        .tab-btn.active { background: var(--blue); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { background: var(--card); padding: 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .chart-box { height: 250px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1 style="font-size: 1.2rem; margin: 0;">Análise Geral</h1>
-        <a href="index.html" class="btn-back">Voltar</a>
+        <h1 style="font-size: 1.2rem; margin: 0;">Estatísticas</h1>
+        <a href="index.html" class="btn-back">Sair</a>
     </div>
 
-    <div class="stats-grid">
-        <div class="mini-card">
-            <span>Vida Perdida</span>
-            <b id="vida-total" style="color: var(--danger);">0h</b>
-        </div>
-        <div class="mini-card">
-            <span>Gasto Mensal</span>
-            <b id="gasto-total">0.00€</b>
-        </div>
-        <div class="mini-card">
-            <span>Média Diária</span>
-            <b id="media-diaria">0</b>
-        </div>
-        <div class="mini-card">
-            <span>Projeção Ano</span>
-            <b id="projecao-ano" style="color: var(--danger);">0€</b>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-resumo')">Resumo</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-semanal')">Semanal</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-gatilhos')">Gatilhos</button>
+    </div>
+
+    <div id="tab-resumo" class="tab-content active">
+        <div class="card">
+            <h2 style="font-size: 0.8rem; color: #888;">IMPACTO ESTE MÊS</h2>
+            <div id="resumo-texto" style="line-height: 2;">
+                </div>
         </div>
     </div>
 
-    <div class="card">
-        <h2>Progresso Semanal</h2>
-        <div class="chart-box"><canvas id="graficoSemanal"></canvas></div>
+    <div id="tab-semanal" class="tab-content">
+        <div class="card">
+            <h2 style="font-size: 0.8rem; color: #888;">ÚLTIMOS 7 DIAS</h2>
+            <div class="chart-box"><canvas id="graficoSemanal"></canvas></div>
+        </div>
     </div>
 
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items: center;">
-            <h2>Gatilhos do Mês</h2>
-            <select id="seletorMes" onchange="atualizarEstatisticas()"></select>
+    <div id="tab-gatilhos" class="tab-content">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="font-size: 0.8rem; color: #888; margin:0;">PORQUÊ?</h2>
+                <select id="seletorMes" onchange="atualizarEstatisticas()"></select>
+            </div>
+            <div class="chart-box"><canvas id="graficoGatilhos"></canvas></div>
         </div>
-        <div class="chart-box"><canvas id="graficoGatilhos"></canvas></div>
     </div>
 
     <script>
-        const PRECO = 0.25; 
-        const MIN_CIG = 11;
+        const PRECO = 0.25; const MIN_CIG = 11;
         let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
         let chartG = null;
 
-        function formatarTempo(min) {
-            if (min < 60) return min + "min";
-            let h = Math.floor(min / 60);
-            let m = min % 60;
-            return h + "h " + (m > 0 ? m + "m" : "");
+        function openTab(evt, tabName) {
+            let i, content, btns;
+            content = document.getElementsByClassName("tab-content");
+            for (i = 0; i < content.length; i++) content[i].classList.remove("active");
+            btns = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
         }
 
         function atualizarEstatisticas() {
             const mesSel = document.getElementById('seletorMes').value;
-            let totalMes = 0;
-            let gatilhosMes = {};
-            let diasComDados = 0;
-
+            let totalMes = 0; let gatilhosMes = {}; let dias = 0;
+            
             Object.keys(dados).filter(d => d.startsWith(mesSel)).forEach(d => {
-                totalMes += dados[d].total;
-                diasComDados++;
-                for (let [g, q] of Object.entries(dados[d].gatilhos)) {
-                    gatilhosMes[g] = (gatilhosMes[g] || 0) + q;
-                }
+                totalMes += dados[d].total; dias++;
+                for (let [g, q] of Object.entries(dados[d].gatilhos)) { gatilhosMes[g] = (gatilhosMes[g] || 0) + q; }
             });
 
-            // Preencher Cartões
-            document.getElementById('vida-total').innerText = formatarTempo(totalMes * MIN_CIG);
-            document.getElementById('gasto-total').innerText = (totalMes * PRECO).toFixed(2) + "€";
-            
-            const media = diasComDados > 0 ? (totalMes / diasComDados).toFixed(1) : 0;
-            document.getElementById('media-diaria').innerText = media;
-            
-            // Projeção anual baseada na média deste mês
-            const projecao = (media * 365 * PRECO).toFixed(0);
-            document.getElementById('projecao-ano').innerText = projecao + "€";
-
+            const media = (totalMes / (dias || 1)).toFixed(1);
+            document.getElementById('resumo-texto').innerHTML = `
+                💰 Gasto: <b>${(totalMes * PRECO).toFixed(2)}€</b><br>
+                ⏳ Vida perdida: <b>${Math.floor(totalMes * MIN_CIG / 60)}h</b><br>
+                📈 Média diária: <b>${media} cigs</b><br>
+                🔮 Projeção Ano: <b>${(media * 365 * PRECO).toFixed(0)}€</b>
+            `;
             renderGatilhos(gatilhosMes);
         }
 
@@ -114,29 +105,17 @@
                 labels.push(d.getDate() + "/" + (d.getMonth()+1));
                 valores.push(dados[iso] ? dados[iso].total : 0);
             }
-            new Chart(ctx, { 
-                type: 'bar', 
-                data: { labels, datasets: [{ data: valores, backgroundColor: '#3498db', borderRadius: 8 }] }, 
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } 
-            });
+            new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data: valores, backgroundColor: '#3498db', borderRadius: 8 }] }, options: { maintainAspectRatio: false } });
         }
 
         function renderGatilhos(obj) {
             const ctx = document.getElementById('graficoGatilhos').getContext('2d');
             if (chartG) chartG.destroy();
-            const labels = Object.keys(obj);
-            if (labels.length === 0) return;
-            chartG = new Chart(ctx, { 
-                type: 'doughnut', 
-                data: { labels, datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'], borderWidth: 0 }] }, 
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 20 } } } } 
-            });
+            chartG = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(obj), datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'] }] }, options: { maintainAspectRatio: false } });
         }
 
-        // Configurar Seletor de Meses
         const meses = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
-        const seletor = document.getElementById('seletorMes');
-        seletor.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
+        document.getElementById('seletorMes').innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
 
         renderSemanal();
         atualizarEstatisticas();
