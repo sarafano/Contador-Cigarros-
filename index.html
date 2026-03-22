@@ -52,28 +52,53 @@
     </div>
 
     <script>
-        const HOJE = new Date().toISOString().split('T')[0];
-        let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+    const HOJE = new Date().toISOString().split('T')[0];
+    let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
 
-        function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
-        function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-        function atualizar() {
-            document.getElementById('contador').innerText = dados[HOJE].total;
-            localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+    // FUNÇÕES DO MODAL E SOS
+    function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
+    function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+    
+    function abrirSOS() { 
+        const frases = [
+            "Bebe um copo de água gelada agora.",
+            "Esta vontade vai passar em 3 minutos. Aguenta!",
+            "Respira fundo 5 vezes. Tu és mais forte.",
+            "Pensa no dinheiro que já poupaste hoje.",
+            "Sai do sítio onde estás. Muda de divisão."
+        ];
+        const fraseAleatoria = frases[Math.floor(Math.random() * frases.length)];
+        // Precisamos garantir que o modal SOS existe no HTML
+        const modalSOS = document.getElementById('modalSOS');
+        if(modalSOS) {
+            modalSOS.querySelector('p').innerText = fraseAleatoria;
+            modalSOS.classList.add('active');
         }
-        function registar(g) { 
-            dados[HOJE].total++; 
-            dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
-            fecharModal(); atualizar(); 
-        }
-        function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
-        function exportarDados() {
-            let txt = "BACKUP TABAC:\n";
-            Object.keys(dados).sort().reverse().forEach(k => txt += `${k}: ${dados[k].total} cig\n`);
-            window.location.href = `mailto:?subject=Backup&body=${encodeURIComponent(txt)}`;
-        }
-        atualizar();
-    </script>
+    }
+    
+    function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
+
+    function atualizar() {
+        document.getElementById('contador').innerText = dados[HOJE].total;
+        localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+    }
+
+    function registar(g) { 
+        dados[HOJE].total++; 
+        dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
+        fecharModal(); atualizar(); 
+    }
+
+    function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
+
+    function exportarDados() {
+        let txt = "BACKUP TABAC:\n";
+        Object.keys(dados).sort().reverse().forEach(k => txt += `${k}: ${dados[k].total} cig\n`);
+        window.location.href = `mailto:?subject=Backup&body=${encodeURIComponent(txt)}`;
+    }
+
+    atualizar();
+</script>
 </body>
 </html>
