@@ -1,8 +1,104 @@
-<div class="card" style="padding: 1rem;">
-    <button class="btn-backup" onclick="window.location.href='stats.html'" style="background: var(--blue); margin-bottom: 10px;">
-        📊 Estatísticas Detalhadas
-    </button>
-    <button class="btn-backup" onclick="exportarDados()" style="background: none; color: var(--blue); border: 1px solid var(--blue); box-shadow: none;">
-        📧 Enviar Backup
-    </button>
-</div>
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meu Controlo v10</title>
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
+    <style>
+        :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; position: relative; }
+        h1 { font-size: 0.9rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; }
+        #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; }
+        /* BOTÃO DE ADICIONAR CIGARROS */
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 20px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; }
+        .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; }
+        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; }
+        .btn-stats { background: var(--blue); color: white; }
+        .btn-backup { background: none; border: 1px solid #ddd; color: #888; font-size: 0.8rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal { background: var(--card); width: 85%; max-width: 310px; padding: 25px; border-radius: 25px; text-align: center; }
+        .trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-opt { background: rgba(0,0,0,0.05); border: none; padding: 15px; border-radius: 15px; font-weight: bold; color: var(--txt); cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <button class="btn-sos" onclick="abrirSOS()">SOS 🔥</button>
+        <h1>HOJE</h1>
+        <div id="contador">0</div>
+        <button class="btn-add" onclick="abrirModal()">+</button>
+        <div style="font-size: 0.9rem; color: #999;">Último Gatilho: <span id="top-gatilho" style="font-weight:bold;">-</span></div>
+        <div style="font-size: 0.8rem; color: var(--danger); font-weight: bold; margin-top:5px;">Vida perdida: <span id="vida-hoje">0min</span></div>
+    </div>
+
+    <div class="card" style="padding: 1.5rem;">
+        <button class="btn-nav btn-stats" onclick="window.location.href='stats.html'">📊 Estatísticas Detalhadas</button>
+        <button class="btn-nav btn-backup" onclick="exportarDados()">📧 Enviar Backup</button>
+        <div style="margin-top:15px; font-size: 0.7rem; color: #ccc; cursor: pointer;" onclick="resetarDia()">Reiniciar dia</div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 style="margin:0">Motivo:</h3>
+            <div class="trigger-grid">
+                <button class="btn-opt" onclick="registar('Stress')">Stress</button>
+                <button class="btn-opt" onclick="registar('Café')">Café</button>
+                <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
+                <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
+            </div>
+            <div style="margin-top:20px; color:var(--danger); font-size:0.8rem;" onclick="fecharModal()">CANCELAR</div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalSOS">
+        <div class="modal">
+            <h3 style="color:var(--sos)">Aguenta Firme!</h3>
+            <p>Bebe água. Esta vontade passa em 3 min.</p>
+            <button class="btn-opt" style="width:100%; background:var(--sos); color:white;" onclick="fecharSOS()">Eu consigo!</button>
+        </div>
+    </div>
+
+    <script>
+        const PRECO = 0.25; const MIN_CIG = 11; const HOJE = new Date().toISOString().split('T')[0];
+        let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+
+        function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
+        function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+        function abrirSOS() { document.getElementById('modalSOS').classList.add('active'); }
+        function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
+
+        function atualizar() {
+            document.getElementById('contador').innerText = dados[HOJE].total;
+            document.getElementById('vida-hoje').innerText = (dados[HOJE].total * MIN_CIG) + "min";
+            
+            let topG = '-', max = 0;
+            for (let [g, q] of Object.entries(dados[HOJE].gatilhos)) { if(q > max) { max = q; topG = g; } }
+            document.getElementById('top-gatilho').innerText = max > 0 ? topG : "-";
+            
+            localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+        }
+
+        function registar(g) { 
+            dados[HOJE].total++; 
+            dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
+            fecharModal(); atualizar(); 
+        }
+
+        function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
+
+        function exportarDados() {
+            let txt = "BACKUP:\n";
+            Object.keys(dados).forEach(k => txt += `${k}: ${dados[k].total}\n`);
+            window.location.href = `mailto:?subject=Backup Tabaco&body=${encodeURIComponent(txt)}`;
+        }
+
+        atualizar();
+    </script>
+</body>
+</html>
