@@ -3,34 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo v7</title>
+    <title>Controlo Tabaco v9.0</title>
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --p: #2ecc71; --bg: #f8f9fa; --card-bg: #ffffff; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; --muted: #aaa; }
-        
-        /* MODO ESCURO AUTOMÁTICO */
-        @media (prefers-color-scheme: dark) {
-            :root { --bg: #1a1a1a; --card-bg: #2d2d2d; --txt: #ecf0f1; --muted: #888; }
-        }
-
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; transition: 0.3s; }
-        .card { background: var(--card-bg); padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; box-sizing: border-box; position: relative; }
-        h1 { font-size: 0.9rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        :root { --p: #2ecc71; --bg: #f8f9fa; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; box-sizing: border-box; position: relative; }
+        h1 { font-size: 0.9rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
-        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 20px auto; box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3); }
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 20px auto; box-shadow: 0 10px 20px rgba(46, 204, 113, 0.2); }
         .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; }
-        .resumo-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--bg); padding-bottom: 10px; margin-bottom: 15px; }
-        .resumo-title { color: var(--blue); font-weight: bold; font-size: 0.9rem; }
-        #seletorMes { border: none; background: var(--bg); border-radius: 10px; padding: 5px; font-size: 0.8rem; color: var(--blue); font-weight: bold; outline: none; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
-        .chart-box { margin-top: 20px; height: 180px; }
-        .btn-backup { width: 100%; background: var(--blue); border: none; color: white; padding: 12px; border-radius: 20px; font-weight: bold; margin-top: 15px; box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3); }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
+        .resumo-title { color: var(--blue); font-weight: bold; font-size: 0.85rem; text-transform: uppercase; display: block; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; color: #555; }
+        .chart-box { margin-top: 15px; height: 160px; }
+        .btn-backup { width: 100%; background: var(--blue); border: none; color: white; padding: 12px; border-radius: 20px; font-weight: bold; margin-top: 15px; box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal { background: var(--card-bg); width: 85%; max-width: 310px; padding: 25px; border-radius: 25px; text-align: center; }
+        .modal { background: white; width: 85%; max-width: 310px; padding: 20px; border-radius: 25px; text-align: center; }
         .trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .btn-opt { background: var(--bg); border: 1px solid rgba(0,0,0,0.05); padding: 15px; border-radius: 15px; font-weight: bold; color: var(--txt); }
+        .btn-opt { background: #f8f9fa; border: 1px solid #eee; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -39,19 +31,24 @@
         <h1>HOJE</h1>
         <div id="contador">0</div>
         <button class="btn-add" onclick="abrirModal()">+</button>
-        <div style="font-size: 0.9rem; color: var(--muted);">Gatilho: <span id="top-gatilho" style="font-weight:bold;">-</span></div>
+        <div style="font-size: 0.9rem; color: #999;">Gatilho: <span id="top-gatilho" style="font-weight:bold;">-</span></div>
         <div style="font-size: 0.8rem; color: var(--danger); font-weight: bold; margin-top:5px;">Vida perdida: <span id="vida-hoje">0min</span></div>
-        <div style="margin-top:15px; font-size: 0.75rem; color: var(--muted); text-decoration: underline;" onclick="resetarDia()">Reiniciar dia</div>
+        <div style="margin-top:15px; font-size: 0.7rem; color: #ccc; text-decoration: underline;" onclick="resetarDia()">Reiniciar dia</div>
     </div>
+
     <div class="card" style="text-align: left; padding: 1.5rem;">
-        <div class="resumo-header">
-            <span class="resumo-title">HISTÓRICO</span>
-            <select id="seletorMes" onchange="atualizarEstatisticasMensais()"></select>
+        <span class="resumo-title">Últimos 7 Dias</span>
+        <div style="height: 150px;"><canvas id="graficoSemanal"></canvas></div>
+    </div>
+
+    <div class="card" style="text-align: left; padding: 1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
+            <span class="resumo-title" style="border:0; margin:0;">Histórico</span>
+            <select id="seletorMes" onchange="atualizarEstatisticasMensais()" style="border:none; background:#eee; border-radius:8px; padding:3px 8px; font-size:0.75rem; color:var(--blue); font-weight:bold;"></select>
         </div>
         <div class="stat-row"><span>Ontem:</span> <span id="total-ontem" style="font-weight:bold">-</span></div>
         <div class="stat-row"><span>Total no mês:</span> <span id="total-mes" style="font-weight:bold">0</span></div>
         <div class="stat-row"><span>Gasto total:</span> <span id="gasto-mes" style="color:var(--danger); font-weight:bold">0.00€</span></div>
-        <div class="stat-row"><span>Vida perdida (Mês):</span> <span id="vida-mes" style="color:var(--danger); font-weight:bold">0min</span></div>
         <div class="chart-box"><canvas id="graficoGatilhos"></canvas></div>
         <button class="btn-backup" onclick="exportarDados()">📧 Enviar Backup por E-mail</button>
     </div>
@@ -71,82 +68,101 @@
     <div class="modal-overlay" id="modalSOS">
         <div class="modal">
             <h3 style="color:var(--sos); margin-top:0;">Aguenta Firme! 🔥</h3>
-            <p id="frase-sos" style="font-size: 1.1rem; line-height: 1.4; font-weight: 500;"></p>
-            <p style="font-size: 0.8rem; color: var(--muted);">Bebe água. Esta vontade vai passar em 3 min.</p>
+            <p id="frase-sos" style="font-size: 1rem;"></p>
             <button class="btn-opt" style="width:100%; background:var(--sos); color:white; border:none;" onclick="fecharSOS()">Eu consigo!</button>
         </div>
     </div>
+
     <script>
         const PRECO = 0.25; const MIN_CIG = 11; const HOJE = new Date().toISOString().split('T')[0];
-        const frases = [
-            "O teu pulmão agradece este minuto de ar limpo.",
-            "Pensa no dinheiro que vais poupar para aquela viagem.",
-            "A vontade dura 3 minutos, a tua saúde dura a vida toda.",
-            "Bebe um copo de água gelada agora. Ajuda a passar!",
-            "Foca-te na próxima hora, não no dia todo.",
-            "Já venceste gatilhos piores antes. Tu mandas!",
-            "Cada cigarro evitado é tempo de vida que recuperas."
-        ];
         let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        let chart = null;
+        let chartGatilhos = null; let chartSemanal = null;
+
         if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+
         function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
         function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
         function abrirSOS() { 
+            const frases = ["Bebe um copo de água gelada.", "Esta vontade passa em 3 minutos.", "Pensa na tua saúde e no teu dinheiro.", "Respira fundo 5 vezes."];
             document.getElementById('frase-sos').innerText = frases[Math.floor(Math.random()*frases.length)];
             document.getElementById('modalSOS').classList.add('active'); 
         }
         function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
+
         function formatarTempo(min) { if (min < 60) return min + "min"; return Math.floor(min/60) + "h " + (min%60) + "min"; }
-        function popularSeletor() {
-            const seletor = document.getElementById('seletorMes');
-            const mesesDisponiveis = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
-            const mesAtual = HOJE.substring(0, 7);
-            seletor.innerHTML = mesesDisponiveis.map(m => `<option value="${m}" ${m===mesAtual?'selected':''}>${m}</option>`).join('');
-        }
+
         function atualizar() {
             document.getElementById('contador').innerText = dados[HOJE].total;
             document.getElementById('vida-hoje').innerText = formatarTempo(dados[HOJE].total * MIN_CIG);
             let topG = '-', max = 0;
             for (let [g, q] of Object.entries(dados[HOJE].gatilhos)) { if(q > max) { max = q; topG = g; } }
             document.getElementById('top-gatilho').innerText = max > 0 ? topG : "-";
+
             const ontemObj = new Date(); ontemObj.setDate(ontemObj.getDate() - 1);
             const ontemISO = ontemObj.toISOString().split('T')[0];
             document.getElementById('total-ontem').innerText = dados[ontemISO] ? dados[ontemISO].total : "0";
-            popularSeletor(); atualizarEstatisticasMensais();
+
+            popularSeletor();
+            atualizarEstatisticasMensais();
+            renderGraficoSemanal();
             localStorage.setItem('dadosCigarros', JSON.stringify(dados));
         }
+
+        function popularSeletor() {
+            const seletor = document.getElementById('seletorMes');
+            const meses = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
+            seletor.innerHTML = meses.map(m => `<option value="${m}" ${m===HOJE.substring(0,7)?'selected':''}>${m}</option>`).join('');
+        }
+
         function atualizarEstatisticasMensais() {
-            const mesSelecionado = document.getElementById('seletorMes').value;
-            let totalMes = 0, gatilhosMes = {};
-            Object.keys(dados).filter(d => d.startsWith(mesSelecionado)).forEach(d => {
-                totalMes += dados[d].total;
-                for (let [g, q] of Object.entries(dados[d].gatilhos)) { gatilhosMes[g] = (gatilhosMes[g] || 0) + q; }
+            const mesSel = document.getElementById('seletorMes').value;
+            let total = 0, gatilhos = {};
+            Object.keys(dados).filter(d => d.startsWith(mesSel)).forEach(d => {
+                total += dados[d].total;
+                for (let [g, q] of Object.entries(dados[d].gatilhos)) { gatilhos[g] = (gatilhos[g] || 0) + q; }
             });
-            document.getElementById('total-mes').innerText = totalMes;
-            document.getElementById('gasto-mes').innerText = (totalMes * PRECO).toFixed(2) + "€";
-            document.getElementById('vida-mes').innerText = formatarTempo(totalMes * MIN_CIG);
-            renderChart(gatilhosMes);
+            document.getElementById('total-mes').innerText = total;
+            document.getElementById('gasto-mes').innerText = (total * PRECO).toFixed(2) + "€";
+            renderChartGatilhos(gatilhos);
         }
-        function exportarDados() {
-            let texto = "MEU BACKUP - CONTROLO DE TABACO\n\n";
-            Object.keys(dados).sort().reverse().forEach(dia => {
-                texto += `${dia}: ${dados[dia].total} cigarros\n`;
+
+        function renderGraficoSemanal() {
+            const ctx = document.getElementById('graficoSemanal').getContext('2d');
+            if (chartSemanal) chartSemanal.destroy();
+            let labels = []; let valores = [];
+            for (let i = 6; i >= 0; i--) {
+                let d = new Date(); d.setDate(d.getDate() - i);
+                let iso = d.toISOString().split('T')[0];
+                labels.push(d.getDate() + "/" + (d.getMonth()+1));
+                valores.push(dados[iso] ? dados[iso].total : 0);
+            }
+            chartSemanal = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ data: valores, backgroundColor: '#3498db', borderRadius: 5 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
             });
-            window.location.href = `mailto:?subject=Backup Tabaco&body=${encodeURIComponent(texto)}`;
         }
-        function renderChart(obj) {
+
+        function renderChartGatilhos(obj) {
             const ctx = document.getElementById('graficoGatilhos').getContext('2d');
-            if (chart) chart.destroy();
+            if (chartGatilhos) chartGatilhos.destroy();
             const labels = Object.keys(obj); if (labels.length === 0) return;
-            chart = new Chart(ctx, {
+            chartGatilhos = new Chart(ctx, {
                 type: 'doughnut',
                 data: { labels: labels, datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'], borderWidth: 0 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: getComputedStyle(document.documentElement).getPropertyValue('--txt') } } } }
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } } }
             });
         }
+
+        function exportarDados() {
+            let txt = "BACKUP CONTROLO:\n";
+            Object.keys(dados).sort().reverse().forEach(k => txt += `${k}: ${dados[k].total} cig\n`);
+            window.location.href = `mailto:?subject=Backup Tabaco&body=${encodeURIComponent(txt)}`;
+        }
+
         function registar(g) { dados[HOJE].total++; dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; fecharModal(); atualizar(); }
         function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
+        
         atualizar();
     </script>
 </body>
