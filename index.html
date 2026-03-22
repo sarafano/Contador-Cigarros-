@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Controlo Tabaco v11</title>
+    <title>Meu Controlo v11</title>
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
     <style>
         :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
         @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
         .card { background: var(--card); padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; position: relative; }
-        h1 { font-size: 0.9rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; }
-        #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; }
+        h1 { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
+        #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
         .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 20px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; }
-        .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; }
-        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; }
+        .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
+        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; transition: 0.2s; }
         .btn-stats { background: var(--blue); color: white; }
         .btn-backup { background: none; border: 1px solid #ddd; color: #888; font-size: 0.8rem; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
@@ -51,54 +52,55 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modalSOS">
+        <div class="modal">
+            <h3 style="color:var(--sos); margin-top:0;">Aguenta Firme! 🔥</h3>
+            <p id="frase-sos" style="font-size: 1rem; line-height: 1.4; color: var(--txt);"></p>
+            <button class="btn-opt" style="width:100%; background:var(--sos); color:white; border:none;" onclick="fecharSOS()">Eu consigo!</button>
+        </div>
+    </div>
+
     <script>
-    const HOJE = new Date().toISOString().split('T')[0];
-    let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+        const HOJE = new Date().toISOString().split('T')[0];
+        let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
 
-    // FUNÇÕES DO MODAL E SOS
-    function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
-    function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-    
-    function abrirSOS() { 
-        const frases = [
-            "Bebe um copo de água gelada agora.",
-            "Esta vontade vai passar em 3 minutos. Aguenta!",
-            "Respira fundo 5 vezes. Tu és mais forte.",
-            "Pensa no dinheiro que já poupaste hoje.",
-            "Sai do sítio onde estás. Muda de divisão."
-        ];
-        const fraseAleatoria = frases[Math.floor(Math.random() * frases.length)];
-        // Precisamos garantir que o modal SOS existe no HTML
-        const modalSOS = document.getElementById('modalSOS');
-        if(modalSOS) {
-            modalSOS.querySelector('p').innerText = fraseAleatoria;
-            modalSOS.classList.add('active');
+        function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
+        function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+        
+        function abrirSOS() { 
+            const frases = [
+                "Bebe um copo de água gelada agora.",
+                "Esta vontade vai passar em 3 minutos. Aguenta!",
+                "Respira fundo 5 vezes. Tu és mais forte.",
+                "Pensa no dinheiro que já poupaste hoje.",
+                "Sai do sítio onde estás. Muda de divisão."
+            ];
+            document.getElementById('frase-sos').innerText = frases[Math.floor(Math.random() * frases.length)];
+            document.getElementById('modalSOS').classList.add('active'); 
         }
-    }
-    
-    function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
+        function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
 
-    function atualizar() {
-        document.getElementById('contador').innerText = dados[HOJE].total;
-        localStorage.setItem('dadosCigarros', JSON.stringify(dados));
-    }
+        function atualizar() {
+            document.getElementById('contador').innerText = dados[HOJE].total;
+            localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+        }
 
-    function registar(g) { 
-        dados[HOJE].total++; 
-        dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
-        fecharModal(); atualizar(); 
-    }
+        function registar(g) { 
+            dados[HOJE].total++; 
+            dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
+            fecharModal(); atualizar(); 
+        }
 
-    function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
+        function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
 
-    function exportarDados() {
-        let txt = "BACKUP TABAC:\n";
-        Object.keys(dados).sort().reverse().forEach(k => txt += `${k}: ${dados[k].total} cig\n`);
-        window.location.href = `mailto:?subject=Backup&body=${encodeURIComponent(txt)}`;
-    }
+        function exportarDados() {
+            let txt = "BACKUP TABAC:\n";
+            Object.keys(dados).sort().reverse().forEach(k => txt += `${k}: ${dados[k].total} cig\n`);
+            window.location.href = `mailto:?subject=Backup&body=${encodeURIComponent(txt)}`;
+        }
 
-    atualizar();
-</script>
+        atualizar();
+    </script>
 </body>
 </html>
