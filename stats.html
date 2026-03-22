@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estatísticas - Controlo Tabaco</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #f8f9fa; --txt: #2c3e50; --blue: #3498db; --card: white; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --txt: #eee; --card: #2d2d2d; } }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding: 20px; margin: 0; }
+        .header { display: flex; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: none; border: 1px solid var(--blue); color: var(--blue); padding: 8px 15px; border-radius: 15px; cursor: pointer; text-decoration: none; font-size: 0.9rem; margin-right: 15px; }
+        .card { background: var(--card); padding: 20px; border-radius: 25px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        h2 { font-size: 1rem; text-transform: uppercase; color: var(--blue); margin-top: 0; }
+        .chart-box { height: 200px; margin-top: 10px; }
+        select { border: none; background: #eee; padding: 5px; border-radius: 8px; font-weight: bold; color: var(--blue); }
+    </style>
+</head>
+<body>
 
+    <div class="header">
+        <a href="index.html" class="btn-back">← Voltar</a>
+        <h1 style="font-size: 1.2rem; margin: 0;">Análise Geral</h1>
+    </div>
+
+    <div class="card">
+        <h2>Últimos 7 Dias</h2>
+        <div class="chart-box"><canvas id="graficoSemanal"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between;">
+            <h2>Histórico Mensal</h2>
+            <select id="seletorMes" onchange="atualizarEstatisticas()"></select>
+        </div>
+        <div id="stats-resumo" style="font-size: 0.9rem; margin: 15px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            </div>
+        <div class="chart-box"><canvas id="graficoGatilhos"></canvas></div>
+    </div>
+
+    <script>
+        const PRECO = 0.25;
+        let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        let chartS = null; let chartG = null;
+
+        function atualizarEstatisticas() {
+            const mesSel = document.getElementById('seletorMes').value;
+            let total = 0, gatilhos = {};
+            Object.keys(dados).filter(d => d.startsWith(mesSel)).forEach(d => {
+                total += dados[d].total;
+                for (let [g, q] of Object.entries(dados[d].gatilhos)) { gatilhos[g] = (gatilhos[g] || 0) + q; }
+            });
+            
+            document.getElementById('stats-resumo').innerHTML = `
+                <div style="background:rgba(52,152,219,0.1); padding:10px; border-radius:15px;">Total: <b>${total}</b></div>
+                <div style="background:rgba(231,76,60,0.1); padding:10px; border-radius:15px;">Custo: <b>${(total*PRECO).toFixed(2)}€</b></div>
+            `;
+            renderGatilhos(gatilhos);
+        }
+
+        function renderSemanal() {
+            const ctx = document.getElementById('graficoSemanal').getContext('2d');
+            let labels = []; let valores = [];
+            for (let i = 6; i >= 0; i--) {
+                let d = new Date(); d.setDate(d.getDate() - i);
+                let iso = d.toISOString().split('T')[0];
+                labels.push(d.getDate() + "/" + (d.getMonth()+1));
+                valores.push(dados[iso] ? dados[iso].total : 0);
+            }
+            new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data: valores, backgroundColor: '#3498db', borderRadius: 5 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        }
+
+        function renderGatilhos(obj) {
+            const ctx = document.getElementById('graficoGatilhos').getContext('2d');
+            if (chartG) chartG.destroy();
+            chartG = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(obj), datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
+        }
+
+        // Iniciar seletor de meses
+        const meses = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
+        document.getElementById('seletorMes').innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
+
+        renderSemanal();
+        atualizarEstatisticas();
+    </script>
+</body>
+</html>
