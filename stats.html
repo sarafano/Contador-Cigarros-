@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estatísticas v11</title>
+    <title>Estatísticas v11.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #f8f9fa; --txt: #2c3e50; --blue: #3498db; --card: white; --danger: #e74c3c; }
+        :root { --bg: #f8f9fa; --txt: #2c3e50; --blue: #3498db; --card: white; --danger: #e74c3c; --p: #2ecc71; }
         @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --txt: #eee; --card: #2d2d2d; } }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding: 20px; margin: 0; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding: 20px; margin: 0; padding-bottom: 40px; }
         .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
         .btn-back { background: var(--blue); color: white; padding: 10px 20px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 0.9rem; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
@@ -18,7 +18,7 @@
         .card { background: var(--card); padding: 20px; border-radius: 25px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         h2 { font-size: 0.8rem; text-transform: uppercase; color: #888; margin-top: 0; margin-bottom: 15px; }
         .chart-box { height: 200px; }
-        select { border: none; background: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 8px; color: var(--blue); font-weight: bold; }
+        select { border: none; background: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 8px; color: var(--blue); font-weight: bold; outline: none; }
     </style>
 </head>
 <body>
@@ -36,7 +36,12 @@
     </div>
 
     <div class="card">
-        <h2>Últimos 7 Dias</h2>
+        <h2>Gasto por Mês (€)</h2>
+        <div class="chart-box"><canvas id="chartGastoMensal"></canvas></div>
+    </div>
+
+    <div class="card">
+        <h2>Últimos 7 Dias (Cigs)</h2>
         <div class="chart-box"><canvas id="chartSemanal"></canvas></div>
     </div>
 
@@ -56,9 +61,13 @@
         function atualizarStats() {
             const mesSel = document.getElementById('seletorMes').value;
             let totalMes = 0, gatilhos = {}, dias = 0;
+            
             Object.keys(dados).filter(d => d.startsWith(mesSel)).forEach(d => {
-                totalMes += dados[d].total; dias++;
-                for (let [g, q] of Object.entries(dados[d].gatilhos)) gatilhos[g] = (gatilhos[g] || 0) + q;
+                totalMes += dados[d].total;
+                dias++;
+                for (let [g, q] of Object.entries(dados[d].gatilhos)) {
+                    gatilhos[g] = (gatilhos[g] || 0) + q;
+                }
             });
 
             document.getElementById('vida-total').innerText = Math.floor(totalMes * MIN_CIG / 60) + "h";
@@ -70,6 +79,38 @@
             renderGatilhos(gatilhos);
         }
 
+        function renderGastoMensal() {
+            const ctx = document.getElementById('chartGastoMensal').getContext('2d');
+            let mesesMap = {};
+            
+            // Agrupar dados por mês
+            Object.keys(dados).forEach(dataStr => {
+                let mesAno = dataStr.substring(0, 7); // Ex: "2024-03"
+                mesesMap[mesAno] = (mesesMap[mesAno] || 0) + (dados[dataStr].total * PRECO);
+            });
+
+            let labels = Object.keys(mesesMap).sort();
+            let valores = labels.map(m => mesesMap[m].toFixed(2));
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Gasto €',
+                        data: valores,
+                        backgroundColor: '#2ecc71',
+                        borderRadius: 5
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
         function renderSemanal() {
             const ctx = document.getElementById('chartSemanal').getContext('2d');
             let labels = [], valores = [];
@@ -79,20 +120,33 @@
                 labels.push(d.getDate() + "/" + (d.getMonth()+1));
                 valores.push(dados[iso] ? dados[iso].total : 0);
             }
-            new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data: valores, backgroundColor: '#3498db', borderRadius: 5 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            new Chart(ctx, { 
+                type: 'bar', 
+                data: { labels, datasets: [{ data: valores, backgroundColor: '#3498db', borderRadius: 5 }] }, 
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } 
+            });
         }
 
         function renderGatilhos(obj) {
             const ctx = document.getElementById('chartGatilhos').getContext('2d');
             if (chartG) chartG.destroy();
-            chartG = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(obj), datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'], borderWidth: 0 }] }, options: { maintainAspectRatio: false } });
+            const keys = Object.keys(obj);
+            if(keys.length === 0) return;
+            chartG = new Chart(ctx, { 
+                type: 'doughnut', 
+                data: { labels: keys, datasets: [{ data: Object.values(obj), backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#9b59b6', '#2ecc71'], borderWidth: 0 }] }, 
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } 
+            });
         }
 
         const meses = [...new Set(Object.keys(dados).map(d => d.substring(0, 7)))].sort().reverse();
-        document.getElementById('seletorMes').innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
-        
-        renderSemanal();
-        atualizarStats();
+        const seletor = document.getElementById('seletorMes');
+        if(meses.length > 0) {
+            seletor.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
+            renderGastoMensal();
+            renderSemanal();
+            atualizarStats();
+        }
     </script>
 </body>
 </html>
