@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo v11</title>
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3209/3209105.png">
+    <title>Meu Controlo v12</title>
     <style>
         :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
         @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
@@ -12,9 +11,10 @@
         .card { background: var(--card); padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; position: relative; }
         h1 { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
         #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
-        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 20px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; }
+        .tempo-limpo { font-size: 0.85rem; color: var(--blue); font-weight: bold; margin-bottom: 10px; background: rgba(52, 152, 219, 0.1); padding: 8px; border-radius: 15px; display: inline-block; }
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 15px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; }
         .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
-        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; transition: 0.2s; }
+        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; }
         .btn-stats { background: var(--blue); color: white; }
         .btn-backup { background: none; border: 1px solid #ddd; color: #888; font-size: 0.8rem; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
@@ -30,11 +30,12 @@
         <button class="btn-sos" onclick="abrirSOS()">SOS 🔥</button>
         <h1>HOJE</h1>
         <div id="contador">0</div>
+        <div id="display-tempo" class="tempo-limpo">A calcular tempo...</div>
         <button class="btn-add" onclick="abrirModal()">+</button>
     </div>
 
     <div class="card" style="padding: 1.5rem;">
-        <button class="btn-nav btn-stats" onclick="window.location.href='stats.html'">📊 Estatísticas</button>
+        <button class="btn-nav btn-stats" onclick="window.location.href='stats.html'">📊 Estatísticas Detalhadas</button>
         <button class="btn-nav btn-backup" onclick="exportarDados()">📧 Enviar Backup</button>
         <div style="margin-top:15px; font-size: 0.7rem; color: #ccc; cursor: pointer;" onclick="resetarDia()">Reiniciar dia</div>
     </div>
@@ -47,7 +48,6 @@
                 <button class="btn-opt" onclick="registar('Café')">Café</button>
                 <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
                 <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
-                <button class="btn-opt" onclick="registar('Hábito')">Pós-refeicão</button>
             </div>
             <div style="margin-top:20px; color:var(--danger); font-size:0.8rem;" onclick="fecharModal()">CANCELAR</div>
         </div>
@@ -64,6 +64,8 @@
     <script>
         const HOJE = new Date().toISOString().split('T')[0];
         let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        let ultimoRegisto = localStorage.getItem('ultimoRegistoTime') || null;
+
         if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
 
         function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
@@ -71,26 +73,16 @@
         
         function abrirSOS() { 
             const frases = [
-
-        "Bebe um copo de água gelada agora. Isso ajuda a passar a fissura.",
-        "Esta vontade vai passar em 3 minutos. Tu és mais forte que um impulso!",
-        "Respira fundo 5 vezes (puxa pelo nariz, solta pela boca). Relaxa.",
-        "Pensa no dinheiro que já poupaste hoje. Vale a pena deitar fora?",
-        "Sai do sítio onde estás. Muda de divisão ou vai à janela respirar ar puro.",
-        "O teu corpo está a limpar-se. Não interrompas o processo agora!",
-        "Lava os dentes ou come uma peça de fruta. Muda o paladar.",
-        "Um cigarro não resolve o stress, apenas cria mais dependência.",
-        "Tu não precisas dele. É apenas o teu cérebro a pregar-te uma partida.",
-        "Lembra-te do motivo pelo qual decidiste controlar isto. Foca no teu objetivo!",
-        "Telefona a alguém ou vai fazer 10 flexões. Distrai o corpo.",
-        "A fissura é como uma onda: ela cresce, mas depois acaba sempre por quebrar.",
-        "Mais 60 segundos e essa vontade intensa vai começar a diminuir. Aguenta!",
-        "Cada vez que dizes 'não', o teu autocontrolo fica mais forte."
-                "Bebe um copo de água gelada agora.",
-                "Esta vontade vai passar em 3 minutos. Aguenta!",
-                "Respira fundo 5 vezes. Tu és mais forte.",
-                "Pensa no dinheiro que já poupaste hoje.",
-                "Sai do sítio onde estás. Muda de divisão."
+                "Bebe um copo de água gelada agora. Ajuda a passar a fissura.",
+                "Esta vontade vai passar em 3 minutos. Tu és mais forte!",
+                "Respira fundo 5 vezes. O teu corpo agradece.",
+                "Pensa no dinheiro que já poupaste hoje. Não o queimes!",
+                "Sai do sítio onde estás. Vai respirar ar puro na janela.",
+                "O teu corpo está a limpar-se. Aguenta o processo!",
+                "Lava os dentes agora. Muda o paladar.",
+                "Um cigarro não resolve o stress, apenas cria ansiedade.",
+                "A fissura é como uma onda: ela cresce, mas acaba por quebrar.",
+                "Cada vez que dizes 'não', o teu autocontrolo fica mais forte!"
             ];
             document.getElementById('frase-sos').innerText = frases[Math.floor(Math.random() * frases.length)];
             document.getElementById('modalSOS').classList.add('active'); 
@@ -100,15 +92,40 @@
         function atualizar() {
             document.getElementById('contador').innerText = dados[HOJE].total;
             localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+            calcularTempoLimpo();
         }
 
         function registar(g) { 
             dados[HOJE].total++; 
             dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
-            fecharModal(); atualizar(); 
+            ultimoRegisto = new Date().getTime();
+            localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
+            fecharModal(); 
+            atualizar(); 
         }
 
-        function resetarDia() { if(confirm("Zerar hoje?")) { dados[HOJE] = { total: 0, gatilhos: {} }; atualizar(); } }
+        function calcularTempoLimpo() {
+            if (!ultimoRegisto) {
+                document.getElementById('display-tempo').innerText = "Primeiro cigarro do dia?";
+                return;
+            }
+            const agora = new Date().getTime();
+            const diffMs = agora - ultimoRegisto;
+            const diffHrs = Math.floor(diffMs / 3600000);
+            const diffMins = Math.floor((diffMs % 3600000) / 60000);
+            
+            document.getElementById('display-tempo').innerText = `Limpo há: ${diffHrs}h ${diffMins}m`;
+        }
+
+        // Atualizar o tempo a cada minuto sem precisar de refrescar a página
+        setInterval(calcularTempoLimpo, 60000);
+
+        function resetarDia() { if(confirm("Zerar hoje?")) { 
+            dados[HOJE] = { total: 0, gatilhos: {} }; 
+            ultimoRegisto = null;
+            localStorage.removeItem('ultimoRegistoTime');
+            atualizar(); 
+        } }
 
         function exportarDados() {
             let txt = "BACKUP TABAC:\n";
