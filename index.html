@@ -3,88 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo v12.4</title>
-    
+    <title>Controlo de Tabaco</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1a1a1a">
-    <link rel="apple-touch-icon" href="icon.png">
-
     <style>
-        :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
-        @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --p: #2ecc71; --blue: #3498db; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
+        .main-card { background: var(--card); padding: 40px 20px; border-radius: 40px; text-align: center; width: 100%; max-width: 350px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        #contador { font-size: 8rem; font-weight: 800; color: var(--p); margin: 10px 0; line-height: 1; }
         
-        .card { background: var(--card); padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; position: relative; }
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 110px; height: 110px; font-size: 4rem; cursor: pointer; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); margin-top: 20px; }
+        .btn-stats { background: var(--blue); color: white; width: 100%; padding: 15px; border-radius: 20px; text-decoration: none; font-weight: bold; margin-top: 30px; display: block; }
         
-        h1 { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
-        #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
-        
-        .tempo-limpo { font-size: 0.9rem; color: var(--blue); font-weight: bold; margin: 15px 0; background: rgba(52, 152, 219, 0.15); padding: 10px 15px; border-radius: 20px; display: inline-block; }
-        
-        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 10px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        
-        .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
-        
-        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; transition: 0.2s; }
-        .btn-stats { background: var(--blue); color: white; }
-        .btn-backup { background: none; border: 1px solid #ddd; color: #888; font-size: 0.75rem; }
-        
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
-        .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal { background: var(--card); width: 85%; max-width: 310px; padding: 25px; border-radius: 25px; text-align: center; }
-        
-        .trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .btn-opt { background: rgba(0,0,0,0.05); border: none; padding: 15px; border-radius: 15px; font-weight: bold; color: var(--txt); cursor: pointer; }
+        /* ESTILO DO MODAL DE GATILHOS */
+        #modalGatilhos { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #222; padding: 30px 20px; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); z-index: 100; text-align: center; box-sizing: border-box; }
+        .grid-gatilhos { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .btn-g { background: #333; border: 1px solid #444; color: white; padding: 15px; border-radius: 15px; font-size: 1rem; }
+        .btn-cancel { margin-top: 20px; color: #888; background: none; border: none; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <button class="btn-sos" onclick="abrirSOS()">SOS 🔥</button>
-        <h1>HOJE</h1>
+    <div class="main-card">
+        <small style="opacity: 0.6; letter-spacing: 2px;">HOJE</small>
         <div id="contador">0</div>
-        <div id="display-tempo" class="tempo-limpo">A contar...</div>
+        <div id="display-tempo" style="color: var(--blue); margin-bottom: 20px;">A contar...</div>
         <button class="btn-add" onclick="abrirModal()">+</button>
     </div>
 
-    <div class="card" style="padding: 1.5rem;">
-        <button class="btn-nav btn-stats" onclick="window.location.href='stats.html'">📊 Estatísticas Detalhadas</button>
-        
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn-nav btn-backup" style="flex:1" onclick="exportarParaFicheiro()">💾 Guardar Backup</button>
-            <button class="btn-nav btn-backup" style="flex:1" onclick="exportarEmail()">📧 Enviar Email</button>
-        </div>
-        
-        <button class="btn-nav btn-backup" style="width: 100%; margin-top: 10px; border-color: var(--blue); color: var(--blue);" onclick="importarBackup()">📥 Restaurar de Ficheiro</button>
-        
-        <div style="margin-top:15px; font-size: 0.7rem; color: #ccc; cursor: pointer;" onclick="resetarDia()">Reiniciar dia</div>
-    </div>
+    <a href="stats.html" class="btn-stats">📊 Estatísticas Detalhadas</a>
 
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <h3 style="margin:0">O que aconteceu?</h3>
-            <div class="trigger-grid">
-                <button class="btn-opt" onclick="registar('Stress')">Stress</button>
-                <button class="btn-opt" onclick="registar('Café')">Café</button>
-                <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
-                <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
-            </div>
-            <div style="margin-top:20px; color:var(--danger); font-size:0.8rem; cursor:pointer;" onclick="fecharModal()">CANCELAR</div>
+    <div id="modalGatilhos">
+        <h3>Qual foi o gatilho?</h3>
+        <div class="grid-gatilhos">
+            <button class="btn-g" onclick="registar('Café')">☕ Café</button>
+            <button class="btn-g" onclick="registar('Pós-refeição')">🍽️ Pós-Refeição</button>
+            <button class="btn-g" onclick="registar('Hábito')">🔄 Hábito</button>
+            <button class="btn-g" onclick="registar('Tédio')">😴 Tédio</button>
+            <button class="btn-g" onclick="registar('Stress')">⚡ Stress</button>
+            <button class="btn-g" onclick="registar('Outro')">❓ Outro</button>
         </div>
-    </div>
-
-    <div class="modal-overlay" id="modalSOS">
-        <div class="modal">
-            <h3 style="color:var(--sos); margin-top:0;">Aguenta Firme! 🔥</h3>
-            <p id="frase-sos" style="font-size: 1rem; line-height: 1.4; color: var(--txt);"></p>
-            <button class="btn-opt" style="width:100%; background:var(--sos); color:white; border:none;" onclick="fecharSOS()">Vou resistir!</button>
-        </div>
+        <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
     </div>
 
     <script src="app.js"></script>
-
+    <script>
+        function abrirModal() { document.getElementById('modalGatilhos').style.display = 'block'; }
+        function fecharModal() { document.getElementById('modalGatilhos').style.display = 'none'; }
+    </script>
 </body>
 </html>
