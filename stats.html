@@ -6,17 +6,18 @@
     <title>Estatísticas - Controlo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --blue: #3498db; }
-        @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
+        :root { --p: #2ecc71; --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; }
         
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .card { background: var(--card); padding: 1.5rem; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; margin-bottom: 20px; box-sizing: border-box; }
-        h2 { font-size: 1.2rem; margin-top: 0; color: var(--p); }
+        .card { background: var(--card); padding: 1.5rem; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 400px; margin-bottom: 20px; box-sizing: border-box; }
+        h2 { font-size: 1.2rem; margin-top: 0; color: var(--p); text-align: center; }
+        
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .stat-box { background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; text-align: center; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; text-align: center; }
         .stat-val { font-size: 1.4rem; font-weight: bold; display: block; color: var(--blue); }
         .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
-        .btn-back { background: var(--txt); color: var(--bg); border: none; padding: 12px 25px; border-radius: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 10px; }
+        
+        .btn-back { background: #444; color: white; border: none; padding: 12px 25px; border-radius: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -30,7 +31,7 @@
             </div>
             <div class="stat-box">
                 <span class="stat-val" id="total-poupado">0€</span>
-                <span class="stat-label">Economia Total</span>
+                <span class="stat-label">Total Gasto</span>
             </div>
             <div class="stat-box">
                 <span class="stat-val" id="media-diaria">0</span>
@@ -51,39 +52,33 @@
     <a href="index.html" class="btn-back">⬅ Voltar</a>
 
     <script>
-        // Carregar dados do LocalStorage
-        const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        const recordeMs = localStorage.getItem('recordeLimpo') || 0;
         const PRECO_MACRO = 5.30;
         const CIG_POR_MACRO = 20;
 
         function carregarStats() {
+            const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+            const recordeMs = localStorage.getItem('recordeLimpo') || 0;
             const chaves = Object.keys(dados).sort();
-            let totalSempre = 0;
             
+            let totalSempre = 0;
             chaves.forEach(k => totalSempre += dados[k].total);
 
             // Preencher Boxes
             document.getElementById('total-sempre').innerText = totalSempre;
             document.getElementById('total-poupado').innerText = ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2) + "€";
-            
-            const media = chaves.length > 0 ? (totalSempre / chaves.length).toFixed(1) : 0;
-            document.getElementById('media-diaria').innerText = media;
+            document.getElementById('media-diaria').innerText = chaves.length > 0 ? (totalSempre / chaves.length).toFixed(1) : 0;
+            document.getElementById('max-limpo').innerText = Math.floor(recordeMs / 3600000) + "h";
 
-            const horasRecorde = Math.floor(recordeMs / 3600000);
-            document.getElementById('max-limpo').innerText = horasRecorde + "h";
-
-            // Configurar Gráfico
-            const ultimos7Dias = chaves.slice(-7);
-            const valores = ultimos7Dias.map(d => dados[d].total);
-            const labels = ultimos7Dias.map(d => d.split('-').slice(1).reverse().join('/'));
+            // Gráfico
+            const ultimos7 = chaves.slice(-7);
+            const valores = ultimos7.map(d => dados[d].total);
+            const labels = ultimos7.map(d => d.split('-').reverse().slice(0,2).join('/'));
 
             new Chart(document.getElementById('graficoSemanal'), {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Cigarros',
                         data: valores,
                         backgroundColor: '#2ecc71',
                         borderRadius: 8
@@ -91,7 +86,10 @@
                 },
                 options: {
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { grid: { display: false } }
+                    }
                 }
             });
         }
