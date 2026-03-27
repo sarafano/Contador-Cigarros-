@@ -7,9 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <style>
         :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --p: #2ecc71; --blue: #3498db; --danger: #e74c3c; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; min-height: 100vh; }
         
-        /* Cabeçalho com SOS */
         .header-top { width: 100%; max-width: 350px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
         .btn-sos { background: none; border: 1px solid #f39c12; color: #f39c12; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; text-decoration: none; }
 
@@ -19,25 +18,43 @@
         
         .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 100px; height: 100px; font-size: 4rem; cursor: pointer; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
 
-        /* Painel Inferior */
         .bottom-panel { background: var(--card); padding: 25px 20px; border-radius: 40px; width: 100%; max-width: 350px; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .btn-primary { background: var(--blue); color: white; padding: 15px; border-radius: 20px; text-decoration: none; font-weight: bold; text-align: center; border: none; font-size: 1rem; display: block; }
         
-        .btn-primary { background: var(--blue); color: white; padding: 15px; border-radius: 20px; text-decoration: none; font-weight: bold; text-align: center; border: none; font-size: 1rem; }
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-outline { background: none; border: 1px solid #555; color: #aaa; padding: 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-restore { background: none; border: 1px solid var(--blue); color: var(--blue); padding: 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+        .btn-outline { background: none; border: 1px solid #555; color: #aaa; padding: 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+        .btn-restore { background: none; border: 1px solid var(--blue); color: var(--blue); padding: 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; width: 100%; cursor: pointer; }
 
-        /* Modal */
-        #modalGatilhos { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #222; padding: 30px 20px; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); z-index: 100; text-align: center; box-sizing: border-box; }
+        /* MODAL FLUTUANTE AJUSTADO */
+        #modalGatilhos { 
+            display: none; 
+            position: fixed; 
+            bottom: 100px; /* Mais para cima */
+            left: 5%; 
+            width: 90%; 
+            max-width: 350px;
+            background: #222; 
+            padding: 25px; 
+            border-radius: 30px; /* Arredondado em todos os cantos */
+            box-shadow: 0 15px 50px rgba(0,0,0,0.9); 
+            z-index: 1000; 
+            text-align: center; 
+            box-sizing: border-box; 
+        }
         .grid-gatilhos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-        .btn-g { background: #333; border: 1px solid #444; color: white; padding: 15px; border-radius: 15px; font-size: 0.9rem; }
-        .btn-cancel { margin-top: 20px; color: #888; background: none; border: none; padding: 10px; }
+        .btn-g { background: #333; border: 1px solid #444; color: white; padding: 15px; border-radius: 15px; font-size: 0.9rem; cursor: pointer; }
+        .btn-cancel { margin-top: 20px; color: #e74c3c; background: none; border: none; padding: 10px; font-weight: bold; cursor: pointer; }
+        
+        /* Overlay para escurecer o fundo quando o modal abre */
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
     </style>
 </head>
 <body>
 
+    <div id="overlay" onclick="fecharModal()"></div>
+
     <div class="header-top">
-        <a href="#" class="btn-sos">SOS 🔥</a>
+        <a href="#" class="btn-sos" onclick="alert('Respira fundo! Tu consegues.')">SOS 🔥</a>
     </div>
 
     <div class="main-card">
@@ -52,32 +69,48 @@
         <a href="stats.html" class="btn-primary">📊 Estatísticas Detalhadas</a>
         
         <div class="btn-row">
-            <button class="btn-outline" onclick="exportarParaFicheiro()">💾 Guardar Backup</button>
-            <button class="btn-outline" onclick="exportarEmail()">📧 Enviar Email</button>
+            <button class="btn-outline" onclick="exportarParaFicheiro()">💾 Backup</button>
+            <button class="btn-outline" onclick="exportarEmail()">📧 Email</button>
         </div>
 
         <button class="btn-restore" onclick="importarBackup()">📥 Restaurar de Ficheiro</button>
         
-        <button style="background:none; border:none; color:#555; font-size:0.7rem;" onclick="if(confirm('Reiniciar dia?')) { dados[HOJE].total=0; atualizar(); }">Reiniciar dia</button>
+        <button style="background:none; border:none; color:#555; font-size:0.7rem; margin-top: 10px;" onclick="if(confirm('Reiniciar dia?')) { reiniciarDia(); }">Reiniciar dia</button>
     </div>
 
     <div id="modalGatilhos">
-        <h3 style="margin-top:0">Qual foi o gatilho?</h3>
+        <h3 style="margin:0 0 15px 0; color: var(--blue);">Qual foi o gatilho?</h3>
         <div class="grid-gatilhos">
-            <button class="btn-g" onclick="registar('Café')">☕ Café</button>
-            <button class="btn-g" onclick="registar('Pós-refeição')">🍽️ Pós-Refeição</button>
-            <button class="btn-g" onclick="registar('Hábito')">🔄 Hábito</button>
-            <button class="btn-g" onclick="registar('Tédio')">😴 Tédio</button>
-            <button class="btn-g" onclick="registar('Stress')">⚡ Stress</button>
-            <button class="btn-g" onclick="registar('Outro')">❓ Outro</button>
+            <button class="btn-g" onclick="registar('Café'); fecharModal()">☕ Café</button>
+            <button class="btn-g" onclick="registar('Pós-refeição'); fecharModal()">🍽️ Refeição</button>
+            <button class="btn-g" onclick="registar('Hábito'); fecharModal()">🔄 Hábito</button>
+            <button class="btn-g" onclick="registar('Tédio'); fecharModal()">😴 Tédio</button>
+            <button class="btn-g" onclick="registar('Stress'); fecharModal()">⚡ Stress</button>
+            <button class="btn-g" onclick="registar('Outro'); fecharModal()">❓ Outro</button>
         </div>
-        <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+        <button class="btn-cancel" onclick="fecharModal()">FECHAR</button>
     </div>
 
     <script src="app.js"></script>
     <script>
-        function abrirModal() { document.getElementById('modalGatilhos').style.display = 'block'; }
-        function fecharModal() { document.getElementById('modalGatilhos').style.display = 'none'; }
+        // Funções de Interface
+        function abrirModal() { 
+            document.getElementById('modalGatilhos').style.display = 'block'; 
+            document.getElementById('overlay').style.display = 'block';
+        }
+        function fecharModal() { 
+            document.getElementById('modalGatilhos').style.display = 'none'; 
+            document.getElementById('overlay').style.display = 'none';
+        }
+        
+        // Função de segurança caso não esteja no app.js
+        function reiniciarDia() {
+            if(typeof dados !== 'undefined' && dados[HOJE]) {
+                dados[HOJE].total = 0;
+                dados[HOJE].gatilhos = {};
+                atualizar();
+            }
+        }
     </script>
 </body>
 </html>
