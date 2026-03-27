@@ -79,7 +79,7 @@ function exportarParaFicheiro() {
     let totalSempre = 0;
     Object.values(dados).forEach(dia => totalSempre += dia.total);
     const backupCompleto = {
-        versao_app: "12.4-PWA",
+        versao_app: "12.5-PWA",
         data_geracao: new Date().toLocaleString(),
         historico: dados,
         estatisticas_globais: {
@@ -126,33 +126,53 @@ function importarBackup() {
     input.click();
 }
 
-// --- FUNÇÃO DE EMAIL MELHORADA (RELATÓRIO LEGÍVEL) ---
+// --- FUNÇÃO DE EMAIL COM RESUMO MENSAL ---
 function exportarEmail() {
     let totalSempre = 0;
+    let resumoMensal = {};
     let relatorioDias = "";
     
     const diasOrdenados = Object.keys(dados).sort().reverse();
     
     diasOrdenados.forEach(dia => {
-        totalSempre += dados[dia].total;
+        const cigsDia = dados[dia].total;
+        totalSempre += cigsDia;
+        
+        // Agrupar por mês (ex: 2026-03)
+        const mesAno = dia.substring(0, 7);
+        if (!resumoMensal[mesAno]) resumoMensal[mesAno] = 0;
+        resumoMensal[mesAno] += cigsDia;
+
         let gatilhosTexto = "";
         for (let g in dados[dia].gatilhos) {
             gatilhosTexto += `      - ${g}: ${dados[dia].gatilhos[g]}\n`;
         }
-        relatorioDias += `📅 Data: ${dia}\n   🚬 Total: ${dados[dia].total}\n${gatilhosTexto}\n`;
+        relatorioDias += `📅 Data: ${dia}\n   🚬 Total: ${cigsDia}\n${gatilhosTexto}\n`;
     });
 
-    const economia = ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2);
+    // Criar texto do resumo mensal
+    let textoMeses = "";
+    for (let mes in resumoMensal) {
+        const gastoMes = ((resumoMensal[mes] / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2);
+        textoMeses += `📍 ${mes}: ${resumoMensal[mes]} cigarros (${gastoMes}€)\n`;
+    }
+
+    const economiaSempre = ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2);
     const horasRecorde = Math.floor(recordeSempre / 3600000);
 
     let corpoEmail = `RELATÓRIO DE PROGRESSO - CONTROLO DE TABACO\n`;
     corpoEmail += `==========================================\n\n`;
     corpoEmail += `📊 RESUMO GERAL:\n`;
     corpoEmail += `------------------------------------------\n`;
-    corpoEmail += `🔹 Total de cigarros fumados: ${totalSempre}\n`;
-    corpoEmail += `🔹 Dinheiro gasto (estimado): ${economia}€\n`;
-    corpoEmail += `🔹 Recorde de tempo limpo: ${horasRecorde} horas\n\n`;
-    corpoEmail += `🗓️ HISTÓRICO DETALHADO:\n`;
+    corpoEmail += `🔹 Total Acumulado: ${totalSempre} cigarros\n`;
+    corpoEmail += `🔹 Custo Total Estimado: ${economiaSempre}€\n`;
+    corpoEmail += `🔹 Recorde Limpo: ${horasRecorde} horas\n\n`;
+    
+    corpoEmail += `📅 TOTAIS POR MÊS:\n`;
+    corpoEmail += `------------------------------------------\n`;
+    corpoEmail += textoMeses + `\n`;
+    
+    corpoEmail += `🗓️ HISTÓRICO DIÁRIO:\n`;
     corpoEmail += `------------------------------------------\n`;
     corpoEmail += relatorioDias;
     corpoEmail += `\n==========================================\n`;
