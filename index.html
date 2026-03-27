@@ -3,23 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo v12</title>
+    <title>Meu Controlo v12.2</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <style>
         :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --danger: #e74c3c; --blue: #3498db; --sos: #f39c12; }
         @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
+        
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; }
+        
         .card { background: var(--card); padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; width: 85%; max-width: 340px; margin-bottom: 20px; position: relative; }
+        
         h1 { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
         #contador { font-size: 6rem; font-weight: 800; color: var(--p); line-height: 1; margin: 10px 0; }
-        .tempo-limpo { font-size: 0.85rem; color: var(--blue); font-weight: bold; margin-bottom: 10px; background: rgba(52, 152, 219, 0.1); padding: 8px; border-radius: 15px; display: inline-block; }
-        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 15px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; }
+        
+        .tempo-limpo { font-size: 0.9rem; color: var(--blue); font-weight: bold; margin: 15px 0; background: rgba(52, 152, 219, 0.15); padding: 10px 15px; border-radius: 20px; display: inline-block; }
+        
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 90px; height: 90px; font-size: 3rem; margin: 10px auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(46,204,113,0.3); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        
         .btn-sos { position: absolute; top: 15px; right: 15px; background: none; border: 1px solid var(--sos); color: var(--sos); border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
-        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; }
+        
+        .btn-nav { width: 100%; padding: 15px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; border: none; font-size: 0.9rem; transition: 0.2s; }
         .btn-stats { background: var(--blue); color: white; }
         .btn-backup { background: none; border: 1px solid #ddd; color: #888; font-size: 0.8rem; }
+        
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
         .modal-overlay.active { visibility: visible; opacity: 1; }
         .modal { background: var(--card); width: 85%; max-width: 310px; padding: 25px; border-radius: 25px; text-align: center; }
+        
         .trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .btn-opt { background: rgba(0,0,0,0.05); border: none; padding: 15px; border-radius: 15px; font-weight: bold; color: var(--txt); cursor: pointer; }
     </style>
@@ -30,12 +46,12 @@
         <button class="btn-sos" onclick="abrirSOS()">SOS 🔥</button>
         <h1>HOJE</h1>
         <div id="contador">0</div>
-        <div id="display-tempo" class="tempo-limpo">A calcular tempo...</div>
+        <div id="display-tempo" class="tempo-limpo">A contar...</div>
         <button class="btn-add" onclick="abrirModal()">+</button>
     </div>
 
     <div class="card" style="padding: 1.5rem;">
-        <button class="btn-nav btn-stats" onclick="window.location.href='stats.html'">📊 Estatísticas</button>
+        <button class="btn-nav btn-stats" onclick="window.location.href='stats.html'">📊 Estatísticas Detalhadas</button>
         <button class="btn-nav btn-backup" onclick="exportarDados()">📧 Enviar Backup</button>
         <div style="margin-top:15px; font-size: 0.7rem; color: #ccc; cursor: pointer;" onclick="resetarDia()">Reiniciar dia</div>
     </div>
@@ -48,7 +64,6 @@
                 <button class="btn-opt" onclick="registar('Café')">Café</button>
                 <button class="btn-opt" onclick="registar('Tédio')">Tédio</button>
                 <button class="btn-opt" onclick="registar('Hábito')">Hábito</button>
-                <button class="btn-opt" onclick="registar('Hábito')">Pós-refeicão</button>
             </div>
             <div style="margin-top:20px; color:var(--danger); font-size:0.8rem;" onclick="fecharModal()">CANCELAR</div>
         </div>
@@ -65,7 +80,7 @@
     <script>
         const HOJE = new Date().toISOString().split('T')[0];
         let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        let ultimoRegisto = localStorage.getItem('ultimoRegistoTime') || null;
+        let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
 
         if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
 
@@ -74,16 +89,13 @@
         
         function abrirSOS() { 
             const frases = [
-                "Bebe um copo de água gelada agora. Ajuda a passar a fissura.",
-                "Esta vontade vai passar em 3 minutos. Tu és mais forte!",
-                "Respira fundo 5 vezes. O teu corpo agradece.",
-                "Pensa no dinheiro que já poupaste hoje. Não o queimes!",
+                "Bebe um copo de água gelada agora.",
+                "Esta vontade vai passar em 3 minutos. Aguenta!",
+                "Respira fundo 5 vezes. Tu és mais forte.",
+                "Pensa no dinheiro que já poupaste hoje.",
                 "Sai do sítio onde estás. Vai respirar ar puro na janela.",
-                "O teu corpo está a limpar-se. Aguenta o processo!",
                 "Lava os dentes agora. Muda o paladar.",
-                "Um cigarro não resolve o stress, apenas cria ansiedade.",
-                "A fissura é como uma onda: ela cresce, mas acaba por quebrar.",
-                "Cada vez que dizes 'não', o teu autocontrolo fica mais forte!"
+                "A fissura é como uma onda: ela cresce, mas acaba por quebrar."
             ];
             document.getElementById('frase-sos').innerText = frases[Math.floor(Math.random() * frases.length)];
             document.getElementById('modalSOS').classList.add('active'); 
@@ -106,27 +118,30 @@
         }
 
         function calcularTempoLimpo() {
+            const display = document.getElementById('display-tempo');
             if (!ultimoRegisto) {
-                document.getElementById('display-tempo').innerText = "Primeiro cigarro do dia?";
+                display.innerText = "Ainda não fumaste hoje! 🎉";
+                display.style.color = "var(--p)";
                 return;
             }
             const agora = new Date().getTime();
             const diffMs = agora - ultimoRegisto;
-            const diffHrs = Math.floor(diffMs / 3600000);
-            const diffMins = Math.floor((diffMs % 3600000) / 60000);
-            
-            document.getElementById('display-tempo').innerText = `Tempo sem fumar: ${diffHrs}h ${diffMins}m`;
+            const horas = Math.floor(diffMs / 3600000);
+            const minutos = Math.floor((diffMs % 3600000) / 60000);
+            display.style.color = "var(--blue)";
+            display.innerText = `Limpo há: ${horas}h ${minutos}m`;
         }
 
-        // Atualizar o tempo a cada minuto sem precisar de refrescar a página
-        setInterval(calcularTempoLimpo, 60000);
+        setInterval(calcularTempoLimpo, 30000);
 
-        function resetarDia() { if(confirm("Zerar hoje?")) { 
-            dados[HOJE] = { total: 0, gatilhos: {} }; 
-            ultimoRegisto = null;
-            localStorage.removeItem('ultimoRegistoTime');
-            atualizar(); 
-        } }
+        function resetarDia() { 
+            if(confirm("Zerar hoje?")) { 
+                dados[HOJE] = { total: 0, gatilhos: {} }; 
+                ultimoRegisto = null;
+                localStorage.removeItem('ultimoRegistoTime');
+                atualizar(); 
+            } 
+        }
 
         function exportarDados() {
             let txt = "BACKUP TABAC:\n";
