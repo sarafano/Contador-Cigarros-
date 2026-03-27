@@ -6,20 +6,17 @@
     <title>Estatísticas - Controlo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --blue: #3498db; --danger: #e74c3c; }
+        :root { --p: #2ecc71; --bg: #f8f9fa; --card: white; --txt: #2c3e50; --blue: #3498db; }
         @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; } }
         
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; }
         .card { background: var(--card); padding: 1.5rem; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; margin-bottom: 20px; box-sizing: border-box; }
-        h2 { font-size: 1.1rem; margin-top: 0; color: var(--p); text-transform: uppercase; letter-spacing: 1px; }
-        
+        h2 { font-size: 1.2rem; margin-top: 0; color: var(--p); }
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .stat-box { background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; text-align: center; }
         .stat-val { font-size: 1.4rem; font-weight: bold; display: block; color: var(--blue); }
         .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
-        
         .btn-back { background: var(--txt); color: var(--bg); border: none; padding: 12px 25px; border-radius: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 10px; }
-        canvas { max-height: 250px; }
     </style>
 </head>
 <body>
@@ -32,12 +29,12 @@
                 <span class="stat-label">Total Cigarros</span>
             </div>
             <div class="stat-box">
-                <span class="stat-val" id="total-poupado" style="color: var(--danger);">0€</span>
-                <span class="stat-label">Gasto Total</span>
+                <span class="stat-val" id="total-poupado">0€</span>
+                <span class="stat-label">Economia Total</span>
             </div>
             <div class="stat-box">
                 <span class="stat-val" id="media-diaria">0</span>
-                <span class="stat-label">Média Diária</span>
+                <span class="stat-label">Média/Dia</span>
             </div>
             <div class="stat-box">
                 <span class="stat-val" id="max-limpo">0h</span>
@@ -47,18 +44,14 @@
     </div>
 
     <div class="card">
-        <h2>Gastos por Mês (€)</h2>
-        <canvas id="graficoMensal"></canvas>
-    </div>
-
-    <div class="card">
-        <h2>Últimos 30 Dias (Cigs)</h2>
-        <canvas id="graficoDiario"></canvas>
+        <h2>Últimos 7 Dias</h2>
+        <canvas id="graficoSemanal"></canvas>
     </div>
 
     <a href="index.html" class="btn-back">⬅ Voltar</a>
 
     <script>
+        // Carregar dados do LocalStorage
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
         const recordeMs = localStorage.getItem('recordeLimpo') || 0;
         const PRECO_MACRO = 5.30;
@@ -67,62 +60,38 @@
         function carregarStats() {
             const chaves = Object.keys(dados).sort();
             let totalSempre = 0;
-            let gastosPorMes = {};
             
-            chaves.forEach(k => {
-                const qtd = dados[k].total;
-                totalSempre += qtd;
-
-                // Agrupar gastos por mês
-                const mes = k.substring(0, 7); // "2026-03"
-                const custoDia = (qtd / CIG_POR_MACRO) * PRECO_MACRO;
-                gastosPorMes[mes] = (gastosPorMes[mes] || 0) + custoDia;
-            });
+            chaves.forEach(k => totalSempre += dados[k].total);
 
             // Preencher Boxes
             document.getElementById('total-sempre').innerText = totalSempre;
             document.getElementById('total-poupado').innerText = ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2) + "€";
-            document.getElementById('media-diaria').innerText = chaves.length > 0 ? (totalSempre / chaves.length).toFixed(1) : 0;
-            document.getElementById('max-limpo').innerText = Math.floor(recordeMs / 3600000) + "h";
+            
+            const media = chaves.length > 0 ? (totalSempre / chaves.length).toFixed(1) : 0;
+            document.getElementById('media-diaria').innerText = media;
 
-            // 1. Gráfico Mensal (Euros)
-            const mesesLabels = Object.keys(gastosPorMes).sort();
-            const mesesValores = mesesLabels.map(m => gastosPorMes[m].toFixed(2));
+            const horasRecorde = Math.floor(recordeMs / 3600000);
+            document.getElementById('max-limpo').innerText = horasRecorde + "h";
 
-            new Chart(document.getElementById('graficoMensal'), {
-                type: 'line',
-                data: {
-                    labels: mesesLabels,
-                    datasets: [{
-                        label: 'Euros €',
-                        data: mesesValores,
-                        borderColor: '#e74c3c',
-                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: { plugins: { legend: { display: false } } }
-            });
+            // Configurar Gráfico
+            const ultimos7Dias = chaves.slice(-7);
+            const valores = ultimos7Dias.map(d => dados[d].total);
+            const labels = ultimos7Dias.map(d => d.split('-').slice(1).reverse().join('/'));
 
-            // 2. Gráfico Diário (Cigarros - Últimos 30 dias)
-            const ultimos30 = chaves.slice(-30);
-            const valoresDia = ultimos30.map(d => dados[d].total);
-            const labelsDia = ultimos30.map(d => d.split('-')[2]); // Apenas o dia
-
-            new Chart(document.getElementById('graficoDiario'), {
+            new Chart(document.getElementById('graficoSemanal'), {
                 type: 'bar',
                 data: {
-                    labels: labelsDia,
+                    labels: labels,
                     datasets: [{
-                        data: valoresDia,
-                        backgroundColor: '#3498db',
-                        borderRadius: 5
+                        label: 'Cigarros',
+                        data: valores,
+                        backgroundColor: '#2ecc71',
+                        borderRadius: 8
                     }]
                 },
-                options: { 
+                options: {
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
                 }
             });
         }
