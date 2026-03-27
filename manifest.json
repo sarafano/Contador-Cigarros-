@@ -1,0 +1,16 @@
+{
+  "short_name": "Controlo",
+  "name": "Controlo de Cigarros",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#1a1a1a",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#2ecc71"
+}
