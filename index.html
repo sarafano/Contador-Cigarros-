@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meu Controlo v12.3</title>
+    <title>Meu Controlo v12.4</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,9 +46,7 @@
         <button class="btn-sos" onclick="abrirSOS()">SOS 🔥</button>
         <h1>HOJE</h1>
         <div id="contador">0</div>
-        
         <div id="display-tempo" class="tempo-limpo">A contar...</div>
-        
         <button class="btn-add" onclick="abrirModal()">+</button>
     </div>
 
@@ -59,6 +57,8 @@
             <button class="btn-nav btn-backup" style="flex:1" onclick="exportarParaFicheiro()">💾 Guardar Backup</button>
             <button class="btn-nav btn-backup" style="flex:1" onclick="exportarEmail()">📧 Enviar Email</button>
         </div>
+        
+        <button class="btn-nav btn-backup" style="width: 100%; margin-top: 10px; border-color: var(--blue); color: var(--blue);" onclick="importarBackup()">📥 Restaurar de Ficheiro</button>
         
         <div style="margin-top:15px; font-size: 0.7rem; color: #ccc; cursor: pointer;" onclick="resetarDia()">Reiniciar dia</div>
     </div>
