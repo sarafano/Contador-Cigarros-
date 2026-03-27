@@ -1,4 +1,7 @@
-// --- CONFIGURAÇÕES INICIAIS ---
+// --- CONFIGURAÇÕES ---
+const PRECO_UNITARIO = 0.25; // Baseado no teu stats v11.1
+const MIN_POR_CIG = 11;
+
 function obterDataLocal() {
     const d = new Date();
     const offset = d.getTimezoneOffset();
@@ -7,188 +10,100 @@ function obterDataLocal() {
 }
 
 const HOJE = obterDataLocal();
-const PRECO_MACRO = 5.30; 
-const CIG_POR_MACRO = 20;
-
 let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
 let recordeSempre = localStorage.getItem('recordeLimpo') || 0;
 
-if (!dados[HOJE]) {
-    dados[HOJE] = { total: 0, gatilhos: {} };
-    localStorage.setItem('dadosCigarros', JSON.stringify(dados));
-}
-
-// --- FUNÇÕES DE INTERFACE ---
-function abrirModal() { document.getElementById('modalOverlay').classList.add('active'); }
-function fecharModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-
-function abrirSOS() { 
-    const frases = [
-        "Bebe água gelada. Ajuda a passar a fissura.",
-        "A vontade passa em 3 minutos. Tu és mais forte!",
-        "Respira fundo 5 vezes. Sente o ar limpo.",
-        "Pensa no dinheiro que estás a poupar agora.",
-        "Muda de divisão. Sai de perto do cinzeiro.",
-        "Lava os dentes. O sabor a menta corta a vontade."
-    ];
-    document.getElementById('frase-sos').innerText = frases[Math.floor(Math.random() * frases.length)];
-    document.getElementById('modalSOS').classList.add('active'); 
-}
-function fecharSOS() { document.getElementById('modalSOS').classList.remove('active'); }
-
-// --- LÓGICA PRINCIPAL ---
+// --- LOGICA ---
 function atualizar() {
-    const diaAtual = obterDataLocal();
-    if (!dados[diaAtual]) dados[diaAtual] = { total: 0, gatilhos: {} };
-    document.getElementById('contador').innerText = dados[diaAtual].total;
+    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+    const cont = document.getElementById('contador');
+    if (cont) cont.innerText = dados[HOJE].total;
     localStorage.setItem('dadosCigarros', JSON.stringify(dados));
     calcularTempoLimpo();
 }
 
-function registar(g) { 
-    const diaAtual = obterDataLocal();
-    if (!dados[diaAtual]) dados[diaAtual] = { total: 0, gatilhos: {} };
-    dados[diaAtual].total++; 
-    dados[diaAtual].gatilhos[g] = (dados[diaAtual].gatilhos[g] || 0) + 1; 
+function registar(g) {
+    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+    dados[HOJE].total++;
+    dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1;
     ultimoRegisto = new Date().getTime();
     localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
-    fecharModal(); 
-    atualizar(); 
+    if (typeof fecharModal === 'function') fecharModal();
+    atualizar();
 }
 
 function calcularTempoLimpo() {
     const display = document.getElementById('display-tempo');
-    if (!ultimoRegisto) {
-        display.innerText = "A contar...";
-        return;
-    }
+    if (!display || !ultimoRegisto) return;
     const agora = new Date().getTime();
     const diffMs = agora - ultimoRegisto;
     if (diffMs > recordeSempre) {
         recordeSempre = diffMs;
         localStorage.setItem('recordeLimpo', recordeSempre);
     }
-    const horas = Math.floor(diffMs / 3600000);
-    const minutos = Math.floor((diffMs % 3600000) / 60000);
-    display.innerText = `Limpo há: ${horas}h ${minutos}m`;
+    const h = Math.floor(diffMs / 3600000);
+    const m = Math.floor((diffMs % 3600000) / 60000);
+    display.innerText = `Limpo há: ${h}h ${m}m`;
 }
 
-// --- SISTEMA DE BACKUP ---
-function exportarParaFicheiro() {
+// --- EXPORTAÇÃO (O TEU NOVO RELATÓRIO) ---
+function exportarEmail() {
     let totalSempre = 0;
-    Object.values(dados).forEach(dia => totalSempre += dia.total);
-    const backupCompleto = {
-        versao_app: "12.5-PWA",
-        data_geracao: new Date().toLocaleString(),
-        historico: dados,
-        estatisticas_globais: {
-            total_cigarros_acumulado: totalSempre,
-            dinheiro_gasto_estimado: ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2) + "€",
-            recorde_limpo_ms: recordeSempre,
-            ultimo_cigarro: ultimoRegisto ? new Date(parseInt(ultimoRegisto)).toLocaleString() : "N/A"
+    let resumoMensal = {};
+    let relatorioDias = "";
+    const diasOrdenados = Object.keys(dados).sort().reverse();
+
+    diasOrdenados.forEach(dia => {
+        const qtd = dados[dia].total;
+        totalSempre += qtd;
+        const mes = dia.substring(0, 7);
+        resumoMensal[mes] = (resumoMensal[mes] || 0) + qtd;
+
+        let gTexto = "";
+        for (let g in dados[dia].gatilhos) {
+            gTexto += `      - ${g}: ${dados[dia].gatilhos[g]}\n`;
         }
-    };
-    const conteudo = JSON.stringify(backupCompleto, null, 2);
+        relatorioDias += `📅 ${dia} | 🚬 ${qtd}\n${gTexto}`;
+    });
+
+    let textoMeses = "";
+    for (let m in resumoMensal) {
+        const custo = (resumoMensal[m] * PRECO_UNITARIO).toFixed(2);
+        textoMeses += `📍 Mês ${m}: ${resumoMensal[m]} cigarros (${custo}€)\n`;
+    }
+
+    let corpo = `RESUMO DE CONTROLO\n====================\n\n`;
+    corpo += `📊 TOTAIS POR MÊS:\n${textoMeses}\n`;
+    corpo += `🗓️ HISTÓRICO DIÁRIO:\n--------------------\n${relatorioDias}`;
+
+    const assunto = `Relatório Tabaco - ${HOJE}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+}
+
+// Funções de Backup (Mantêm o formato JSON para a App ler)
+function exportarParaFicheiro() {
+    const conteudo = JSON.stringify(dados, null, 2);
     const blob = new Blob([conteudo], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_cigarros_${HOJE}.txt`;
-    document.body.appendChild(a);
+    a.href = URL.createObjectURL(blob);
+    a.download = `backup_tabac_${HOJE}.txt`;
     a.click();
-    document.body.removeChild(a);
 }
 
 function importarBackup() {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.txt,.json';
     input.onchange = e => {
-        const ficheiro = e.target.files[0];
         const leitor = new FileReader();
-        leitor.onload = eventoLeitura => {
-            try {
-                const backupBruto = JSON.parse(eventoLeitura.target.result);
-                const historicoRecuperado = backupBruto.historico || backupBruto;
-                if (historicoRecuperado) {
-                    if (confirm("Restaurar histórico?")) {
-                        dados = historicoRecuperado;
-                        localStorage.setItem('dadosCigarros', JSON.stringify(dados));
-                        alert("Dados restaurados!");
-                        location.reload();
-                    }
-                }
-            } catch (erro) { alert("Erro ao ler o ficheiro."); }
+        leitor.onload = ev => {
+            dados = JSON.parse(ev.target.result);
+            localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+            location.reload();
         };
-        leitor.readAsText(ficheiro);
+        leitor.readAsText(e.target.files[0]);
     };
     input.click();
-}
-
-// --- FUNÇÃO DE EMAIL COM RESUMO MENSAL ---
-function exportarEmail() {
-    let totalSempre = 0;
-    let resumoMensal = {};
-    let relatorioDias = "";
-    
-    const diasOrdenados = Object.keys(dados).sort().reverse();
-    
-    diasOrdenados.forEach(dia => {
-        const cigsDia = dados[dia].total;
-        totalSempre += cigsDia;
-        
-        // Agrupar por mês (ex: 2026-03)
-        const mesAno = dia.substring(0, 7);
-        if (!resumoMensal[mesAno]) resumoMensal[mesAno] = 0;
-        resumoMensal[mesAno] += cigsDia;
-
-        let gatilhosTexto = "";
-        for (let g in dados[dia].gatilhos) {
-            gatilhosTexto += `      - ${g}: ${dados[dia].gatilhos[g]}\n`;
-        }
-        relatorioDias += `📅 Data: ${dia}\n   🚬 Total: ${cigsDia}\n${gatilhosTexto}\n`;
-    });
-
-    // Criar texto do resumo mensal
-    let textoMeses = "";
-    for (let mes in resumoMensal) {
-        const gastoMes = ((resumoMensal[mes] / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2);
-        textoMeses += `📍 ${mes}: ${resumoMensal[mes]} cigarros (${gastoMes}€)\n`;
-    }
-
-    const economiaSempre = ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2);
-    const horasRecorde = Math.floor(recordeSempre / 3600000);
-
-    let corpoEmail = `RELATÓRIO DE PROGRESSO - CONTROLO DE TABACO\n`;
-    corpoEmail += `==========================================\n\n`;
-    corpoEmail += `📊 RESUMO GERAL:\n`;
-    corpoEmail += `------------------------------------------\n`;
-    corpoEmail += `🔹 Total Acumulado: ${totalSempre} cigarros\n`;
-    corpoEmail += `🔹 Custo Total Estimado: ${economiaSempre}€\n`;
-    corpoEmail += `🔹 Recorde Limpo: ${horasRecorde} horas\n\n`;
-    
-    corpoEmail += `📅 TOTAIS POR MÊS:\n`;
-    corpoEmail += `------------------------------------------\n`;
-    corpoEmail += textoMeses + `\n`;
-    
-    corpoEmail += `🗓️ HISTÓRICO DIÁRIO:\n`;
-    corpoEmail += `------------------------------------------\n`;
-    corpoEmail += relatorioDias;
-    corpoEmail += `\n==========================================\n`;
-
-    const assunto = `Relatório de Controlo - ${HOJE}`;
-    window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`;
-}
-
-function resetarDia() { 
-    const diaAtual = obterDataLocal();
-    if(confirm("Reiniciar o contador de hoje?")) { 
-        dados[diaAtual] = { total: 0, gatilhos: {} }; 
-        ultimoRegisto = null;
-        localStorage.removeItem('ultimoRegistoTime');
-        atualizar(); 
-    } 
 }
 
 setInterval(calcularTempoLimpo, 30000);
