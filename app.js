@@ -1,5 +1,13 @@
 // --- CONFIGURAÇÕES INICIAIS ---
-const HOJE = new Date().toISOString().split('T')[0];
+// Esta função garante que a data é sempre a local, evitando falhas de fuso horário
+function obterDataLocal() {
+    const d = new Date();
+    const offset = d.getTimezoneOffset();
+    const dataLocal = new Date(d.getTime() - (offset * 60000));
+    return dataLocal.toISOString().split('T')[0];
+}
+
+const HOJE = obterDataLocal();
 const PRECO_MACRO = 5.30; 
 const CIG_POR_MACRO = 20;
 
@@ -7,9 +15,9 @@ let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
 let recordeSempre = localStorage.getItem('recordeLimpo') || 0;
 
+// Garantir que o dia de hoje existe nos dados
 if (!dados[HOJE]) {
     dados[HOJE] = { total: 0, gatilhos: {} };
-    localStorage.setItem('dadosCigarros', JSON.stringify(dados));
 }
 
 // --- FUNÇÕES DE INTERFACE ---
@@ -32,17 +40,26 @@ function fecharSOS() { document.getElementById('modalSOS').classList.remove('act
 
 // --- LÓGICA PRINCIPAL ---
 function atualizar() {
-    document.getElementById('contador').innerText = dados[HOJE].total;
-    // Gravação robusta
+    // Forçar a leitura do dia atual
+    const diaAtual = obterDataLocal();
+    if (!dados[diaAtual]) dados[diaAtual] = { total: 0, gatilhos: {} };
+    
+    document.getElementById('contador').innerText = dados[diaAtual].total;
+    
+    // Guardar tudo
     localStorage.setItem('dadosCigarros', JSON.stringify(dados));
-    if (ultimoRegisto) localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
     calcularTempoLimpo();
 }
 
 function registar(g) { 
-    dados[HOJE].total++; 
-    dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1; 
+    const diaAtual = obterDataLocal();
+    if (!dados[diaAtual]) dados[diaAtual] = { total: 0, gatilhos: {} };
+
+    dados[diaAtual].total++; 
+    dados[diaAtual].gatilhos[g] = (dados[diaAtual].gatilhos[g] || 0) + 1; 
+    
     ultimoRegisto = new Date().getTime();
+    localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
     
     fecharModal(); 
     atualizar(); 
@@ -105,16 +122,11 @@ function importarBackup() {
         leitor.onload = eventoLeitura => {
             try {
                 const backupBruto = JSON.parse(eventoLeitura.target.result);
-                // Suporte para o formato antigo e novo do backup
                 const historicoRecuperado = backupBruto.historico || backupBruto;
                 
                 if (historicoRecuperado) {
-                    if (confirm("Desejas restaurar o histórico deste ficheiro?")) {
+                    if (confirm("Restaurar histórico?")) {
                         dados = historicoRecuperado;
-                        if (backupBruto.estatisticas_globais) {
-                            recordeSempre = backupBruto.estatisticas_globais.recorde_limpo_ms || 0;
-                            localStorage.setItem('recordeLimpo', recordeSempre);
-                        }
                         localStorage.setItem('dadosCigarros', JSON.stringify(dados));
                         alert("Dados restaurados!");
                         location.reload();
@@ -133,8 +145,9 @@ function exportarEmail() {
 }
 
 function resetarDia() { 
+    const diaAtual = obterDataLocal();
     if(confirm("Reiniciar o contador de hoje?")) { 
-        dados[HOJE] = { total: 0, gatilhos: {} }; 
+        dados[diaAtual] = { total: 0, gatilhos: {} }; 
         ultimoRegisto = null;
         localStorage.removeItem('ultimoRegistoTime');
         atualizar(); 
