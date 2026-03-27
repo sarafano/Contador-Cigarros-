@@ -6,35 +6,63 @@
     <title>Controlo de Tabaco</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --p: #2ecc71; --blue: #3498db; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --p: #2ecc71; --blue: #3498db; --danger: #e74c3c; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         
-        .main-card { background: var(--card); padding: 40px 20px; border-radius: 40px; text-align: center; width: 100%; max-width: 350px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        #contador { font-size: 8rem; font-weight: 800; color: var(--p); margin: 10px 0; line-height: 1; }
+        /* Cabeçalho com SOS */
+        .header-top { width: 100%; max-width: 350px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .btn-sos { background: none; border: 1px solid #f39c12; color: #f39c12; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; text-decoration: none; }
+
+        .main-card { background: var(--card); padding: 30px 20px; border-radius: 40px; text-align: center; width: 100%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        #contador { font-size: 8rem; font-weight: 800; color: var(--p); margin: 5px 0; line-height: 1; }
+        #display-tempo { color: var(--blue); margin-bottom: 20px; font-size: 0.9rem; background: rgba(52, 152, 219, 0.1); padding: 8px 15px; border-radius: 20px; display: inline-block; }
         
-        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 110px; height: 110px; font-size: 4rem; cursor: pointer; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); margin-top: 20px; }
-        .btn-stats { background: var(--blue); color: white; width: 100%; padding: 15px; border-radius: 20px; text-decoration: none; font-weight: bold; margin-top: 30px; display: block; }
+        .btn-add { background: var(--p); border: none; color: white; border-radius: 50%; width: 100px; height: 100px; font-size: 4rem; cursor: pointer; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
+
+        /* Painel Inferior */
+        .bottom-panel { background: var(--card); padding: 25px 20px; border-radius: 40px; width: 100%; max-width: 350px; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
         
-        /* ESTILO DO MODAL DE GATILHOS */
+        .btn-primary { background: var(--blue); color: white; padding: 15px; border-radius: 20px; text-decoration: none; font-weight: bold; text-align: center; border: none; font-size: 1rem; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-outline { background: none; border: 1px solid #555; color: #aaa; padding: 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-restore { background: none; border: 1px solid var(--blue); color: var(--blue); padding: 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+
+        /* Modal */
         #modalGatilhos { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #222; padding: 30px 20px; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); z-index: 100; text-align: center; box-sizing: border-box; }
-        .grid-gatilhos { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .btn-g { background: #333; border: 1px solid #444; color: white; padding: 15px; border-radius: 15px; font-size: 1rem; }
-        .btn-cancel { margin-top: 20px; color: #888; background: none; border: none; }
+        .grid-gatilhos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .btn-g { background: #333; border: 1px solid #444; color: white; padding: 15px; border-radius: 15px; font-size: 0.9rem; }
+        .btn-cancel { margin-top: 20px; color: #888; background: none; border: none; padding: 10px; }
     </style>
 </head>
 <body>
 
+    <div class="header-top">
+        <a href="#" class="btn-sos">SOS 🔥</a>
+    </div>
+
     <div class="main-card">
-        <small style="opacity: 0.6; letter-spacing: 2px;">HOJE</small>
+        <small style="opacity: 0.6; letter-spacing: 2px; font-weight: bold;">HOJE</small>
         <div id="contador">0</div>
-        <div id="display-tempo" style="color: var(--blue); margin-bottom: 20px;">A contar...</div>
+        <div id="display-tempo">A contar...</div>
+        <br>
         <button class="btn-add" onclick="abrirModal()">+</button>
     </div>
 
-    <a href="stats.html" class="btn-stats">📊 Estatísticas Detalhadas</a>
+    <div class="bottom-panel">
+        <a href="stats.html" class="btn-primary">📊 Estatísticas Detalhadas</a>
+        
+        <div class="btn-row">
+            <button class="btn-outline" onclick="exportarParaFicheiro()">💾 Guardar Backup</button>
+            <button class="btn-outline" onclick="exportarEmail()">📧 Enviar Email</button>
+        </div>
+
+        <button class="btn-restore" onclick="importarBackup()">📥 Restaurar de Ficheiro</button>
+        
+        <button style="background:none; border:none; color:#555; font-size:0.7rem;" onclick="if(confirm('Reiniciar dia?')) { dados[HOJE].total=0; atualizar(); }">Reiniciar dia</button>
+    </div>
 
     <div id="modalGatilhos">
-        <h3>Qual foi o gatilho?</h3>
+        <h3 style="margin-top:0">Qual foi o gatilho?</h3>
         <div class="grid-gatilhos">
             <button class="btn-g" onclick="registar('Café')">☕ Café</button>
             <button class="btn-g" onclick="registar('Pós-refeição')">🍽️ Pós-Refeição</button>
