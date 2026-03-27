@@ -1,5 +1,4 @@
 // --- CONFIGURAÇÕES INICIAIS ---
-// Esta função garante que a data é sempre a local, evitando falhas de fuso horário
 function obterDataLocal() {
     const d = new Date();
     const offset = d.getTimezoneOffset();
@@ -15,9 +14,9 @@ let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
 let recordeSempre = localStorage.getItem('recordeLimpo') || 0;
 
-// Garantir que o dia de hoje existe nos dados
 if (!dados[HOJE]) {
     dados[HOJE] = { total: 0, gatilhos: {} };
+    localStorage.setItem('dadosCigarros', JSON.stringify(dados));
 }
 
 // --- FUNÇÕES DE INTERFACE ---
@@ -40,13 +39,9 @@ function fecharSOS() { document.getElementById('modalSOS').classList.remove('act
 
 // --- LÓGICA PRINCIPAL ---
 function atualizar() {
-    // Forçar a leitura do dia atual
     const diaAtual = obterDataLocal();
     if (!dados[diaAtual]) dados[diaAtual] = { total: 0, gatilhos: {} };
-    
     document.getElementById('contador').innerText = dados[diaAtual].total;
-    
-    // Guardar tudo
     localStorage.setItem('dadosCigarros', JSON.stringify(dados));
     calcularTempoLimpo();
 }
@@ -54,13 +49,10 @@ function atualizar() {
 function registar(g) { 
     const diaAtual = obterDataLocal();
     if (!dados[diaAtual]) dados[diaAtual] = { total: 0, gatilhos: {} };
-
     dados[diaAtual].total++; 
     dados[diaAtual].gatilhos[g] = (dados[diaAtual].gatilhos[g] || 0) + 1; 
-    
     ultimoRegisto = new Date().getTime();
     localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
-    
     fecharModal(); 
     atualizar(); 
 }
@@ -73,22 +65,19 @@ function calcularTempoLimpo() {
     }
     const agora = new Date().getTime();
     const diffMs = agora - ultimoRegisto;
-    
     if (diffMs > recordeSempre) {
         recordeSempre = diffMs;
         localStorage.setItem('recordeLimpo', recordeSempre);
     }
-    
     const horas = Math.floor(diffMs / 3600000);
     const minutos = Math.floor((diffMs % 3600000) / 60000);
     display.innerText = `Limpo há: ${horas}h ${minutos}m`;
 }
 
-// --- SISTEMA DE BACKUP ---
+// --- SISTEMA DE BACKUP E RELATÓRIO ---
 function exportarParaFicheiro() {
     let totalSempre = 0;
     Object.values(dados).forEach(dia => totalSempre += dia.total);
-    
     const backupCompleto = {
         versao_app: "12.4-PWA",
         data_geracao: new Date().toLocaleString(),
@@ -100,7 +89,6 @@ function exportarParaFicheiro() {
             ultimo_cigarro: ultimoRegisto ? new Date(parseInt(ultimoRegisto)).toLocaleString() : "N/A"
         }
     };
-
     const conteudo = JSON.stringify(backupCompleto, null, 2);
     const blob = new Blob([conteudo], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -123,7 +111,6 @@ function importarBackup() {
             try {
                 const backupBruto = JSON.parse(eventoLeitura.target.result);
                 const historicoRecuperado = backupBruto.historico || backupBruto;
-                
                 if (historicoRecuperado) {
                     if (confirm("Restaurar histórico?")) {
                         dados = historicoRecuperado;
@@ -139,9 +126,42 @@ function importarBackup() {
     input.click();
 }
 
+// FUNÇÃO DE EMAIL MELHORADA (RELATÓRIO)
 function exportarEmail() {
-    const conteudo = JSON.stringify(dados);
-    window.location.href = `mailto:?subject=Backup_Cigarros&body=${encodeURIComponent(conteudo)}`;
+    let totalSempre = 0;
+    let relatorioDias = "";
+    
+    // Organizar os dias por data
+    const diasOrdenados = Object.keys(dados).sort().reverse();
+    
+    diasOrdenados.forEach(dia => {
+        totalSempre += dados[dia].total;
+        // Formatar gatilhos de forma legível
+        let gatilhosTexto = "";
+        for (let g in dados[dia].gatilhos) {
+            gatilhosTexto += `      - ${g}: ${dados[dia].gatilhos[g]}\n`;
+        }
+        relatorioDias += `📅 Data: ${dia}\n   🚬 Total: ${dados[dia].total}\n${gatilhosTexto}\n`;
+    });
+
+    const economia = ((totalSempre / CIG_POR_MACRO) * PRECO_MACRO).toFixed(2);
+    const horasRecorde = Math.floor(recordeSempre / 3600000);
+
+    let corpoEmail = `RELATÓRIO DE PROGRESSO - CONTROLO DE TABACO\n`;
+    corpoEmail += `==========================================\n\n`;
+    corpoEmail += `📊 RESUMO GERAL:\n`;
+    corpoEmail += `------------------------------------------\n`;
+    corpoEmail += `🔹 Total de cigarros fumados: ${totalSempre}\n`;
+    corpoEmail += `🔹 Dinheiro gasto (estimado): ${economia}€\n`;
+    corpoEmail += `🔹 Recorde de tempo limpo: ${horasRecorde} horas\n\n`;
+    corpoEmail += `🗓️ HISTÓRICO DETALHADO:\n`;
+    corpoEmail += `------------------------------------------\n`;
+    corpoEmail += relatorioDias;
+    corpoEmail += `\n==========================================\n`;
+    corpoEmail += `Enviado pela minha App de Controlo Personalizada.`;
+
+    const assunto = `Relatório de Controlo - ${HOJE}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`;
 }
 
 function resetarDia() { 
