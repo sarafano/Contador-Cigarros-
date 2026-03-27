@@ -74,7 +74,7 @@ function calcularTempoLimpo() {
     display.innerText = `Limpo há: ${horas}h ${minutos}m`;
 }
 
-// --- SISTEMA DE BACKUP E RELATÓRIO ---
+// --- SISTEMA DE BACKUP ---
 function exportarParaFicheiro() {
     let totalSempre = 0;
     Object.values(dados).forEach(dia => totalSempre += dia.total);
@@ -126,17 +126,15 @@ function importarBackup() {
     input.click();
 }
 
-// FUNÇÃO DE EMAIL MELHORADA (RELATÓRIO)
+// --- FUNÇÃO DE EMAIL MELHORADA (RELATÓRIO LEGÍVEL) ---
 function exportarEmail() {
     let totalSempre = 0;
     let relatorioDias = "";
     
-    // Organizar os dias por data
     const diasOrdenados = Object.keys(dados).sort().reverse();
     
     diasOrdenados.forEach(dia => {
         totalSempre += dados[dia].total;
-        // Formatar gatilhos de forma legível
         let gatilhosTexto = "";
         for (let g in dados[dia].gatilhos) {
             gatilhosTexto += `      - ${g}: ${dados[dia].gatilhos[g]}\n`;
@@ -158,7 +156,6 @@ function exportarEmail() {
     corpoEmail += `------------------------------------------\n`;
     corpoEmail += relatorioDias;
     corpoEmail += `\n==========================================\n`;
-    corpoEmail += `Enviado pela minha App de Controlo Personalizada.`;
 
     const assunto = `Relatório de Controlo - ${HOJE}`;
     window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`;
@@ -174,6 +171,5 @@ function resetarDia() {
     } 
 }
 
-// Inicialização
 setInterval(calcularTempoLimpo, 30000);
 atualizar();
