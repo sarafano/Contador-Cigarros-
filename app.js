@@ -1,103 +1,75 @@
-// Configurações e Dados
-const PRECO_UNITARIO = 0.25;
 const HOJE = new Date().toISOString().split('T')[0];
-
 let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
 
-// 1. Função de Registo (Ligada ao Modal de Gatilhos)
-function registar(gatilho) {
-    if (!dados[HOJE]) {
-        dados[HOJE] = { total: 0, gatilhos: {} };
-    }
-    
+function atualizar() {
+    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
+    document.getElementById('contador').innerText = dados[HOJE].total;
+    calcularTempoLimpo();
+    localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+}
+
+function registar(g) {
+    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
     dados[HOJE].total++;
-    dados[HOJE].gatilhos[gatilho] = (dados[HOJE].gatilhos[gatilho] || 0) + 1;
+    dados[HOJE].gatilhos[g] = (dados[HOJE].gatilhos[g] || 0) + 1;
     
     ultimoRegisto = new Date().getTime();
     localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
     
-    salvarEAtualizar();
-}
-
-// 2. FUNÇÃO BACKUP: Cria um ficheiro de texto com os seus dados
-function exportarParaFicheiro() {
-    const dataStr = JSON.stringify(dados, null, 2);
-    const blob = new Blob([dataStr], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    
-    link.href = url;
-    link.download = `backup_tabaco_${HOJE}.txt`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-}
-
-// 3. FUNÇÃO EMAIL: Prepara um email com os dados para envio manual
-function exportarEmail() {
-    const dataStr = JSON.stringify(dados);
-    const subject = encodeURIComponent("Backup Controlo de Tabaco");
-    const body = encodeURIComponent("Aqui estão os meus dados de consumo:\n\n" + dataStr);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-// 4. FUNÇÃO RESTAURAR: Lê um ficheiro de backup e carrega os dados
-function importarBackup() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.txt';
-    
-    input.onchange = e => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = readerEvent => {
-            try {
-                const content = readerEvent.target.result;
-                const dadosImportados = JSON.parse(content);
-                
-                if (confirm("Deseja substituir os dados atuais pelos do ficheiro?")) {
-                    dados = dadosImportados;
-                    salvarEAtualizar();
-                    alert("Dados restaurados com sucesso!");
-                }
-            } catch (err) {
-                alert("Erro ao ler o ficheiro. Verifique se é um backup válido.");
-            }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
-}
-
-// Auxiliares
-function salvarEAtualizar() {
-    localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+    fecharModal(); // Fecha a janela após clicar
     atualizar();
-}
-
-function atualizar() {
-    if (!dados[HOJE]) dados[HOJE] = { total: 0, gatilhos: {} };
-    
-    const countEl = document.getElementById('contador');
-    if (countEl) countEl.innerText = dados[HOJE].total;
-    
-    calcularTempoLimpo();
 }
 
 function calcularTempoLimpo() {
     const display = document.getElementById('display-tempo');
     if (!display || !ultimoRegisto) return;
-    
-    const agora = new Date().getTime();
-    const diffMs = agora - ultimoRegisto;
-    const h = Math.floor(diffMs / 3600000);
-    const m = Math.floor((diffMs % 3600000) / 60000);
-    
+    const diff = new Date().getTime() - ultimoRegisto;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
     display.innerText = `Limpo há: ${h}h ${m}m`;
 }
 
-// Inicialização
+// CORREÇÃO: FUNÇÃO BACKUP
+function exportarParaFicheiro() {
+    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `tabaco_backup_${HOJE}.txt`;
+    a.click();
+}
+
+// CORREÇÃO: FUNÇÃO EMAIL
+function exportarEmail() {
+    const uri = `mailto:?subject=Backup Tabaco&body=${encodeURIComponent(JSON.stringify(dados))}`;
+    window.location.href = uri;
+}
+
+// CORREÇÃO: FUNÇÃO RESTAURAR
+function importarBackup() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = e => {
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                dados = JSON.parse(event.target.result);
+                atualizar();
+                alert("Dados restaurados!");
+            } catch (err) { alert("Ficheiro inválido."); }
+        };
+        reader.readAsText(e.target.files[0]);
+    };
+    input.click();
+}
+
+function reiniciarDia() {
+    if(confirm('Limpar contagem de hoje?')) {
+        dados[HOJE] = { total: 0, gatilhos: {} };
+        atualizar();
+    }
+}
+
+// Iniciar
 atualizar();
 setInterval(calcularTempoLimpo, 30000);
