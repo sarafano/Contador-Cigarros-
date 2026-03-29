@@ -17,7 +17,7 @@ function registar(g) {
     ultimoRegisto = new Date().getTime();
     localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
     
-    fecharModal(); // Fecha a janela após clicar
+    if (typeof fecharModal === 'function') fecharModal();
     atualizar();
 }
 
@@ -30,7 +30,6 @@ function calcularTempoLimpo() {
     display.innerText = `Limpo há: ${h}h ${m}m`;
 }
 
-// CORREÇÃO: FUNÇÃO BACKUP
 function exportarParaFicheiro() {
     const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "text/plain" });
     const a = document.createElement("a");
@@ -39,13 +38,35 @@ function exportarParaFicheiro() {
     a.click();
 }
 
-// CORREÇÃO: FUNÇÃO EMAIL
+// --- FUNÇÃO DE EMAIL CORRIGIDA E FORMATADA ---
 function exportarEmail() {
-    const uri = `mailto:?subject=Backup Tabaco&body=${encodeURIComponent(JSON.stringify(dados))}`;
+    let relatorio = "RELATÓRIO DE CONSUMO - CONTROLO DE TABACO\n";
+    relatorio += "==========================================\n\n";
+
+    // Ordenar as datas para o relatório ficar cronológico
+    const datasOrdenadas = Object.keys(dados).sort().reverse();
+
+    datasOrdenadas.forEach(data => {
+        const info = dados[data];
+        relatorio += `📅 DATA: ${data}\n`;
+        relatorio += `🚬 TOTAL: ${info.total} cigarros\n`;
+        
+        if (info.gatilhos && Object.keys(info.gatilhos).length > 0) {
+            relatorio += `🎯 GATILHOS:\n`;
+            for (const [gatilho, qtd] of Object.entries(info.gatilhos)) {
+                relatorio += `   - ${gatilho}: ${qtd}\n`;
+            }
+        }
+        relatorio += "------------------------------------------\n";
+    });
+
+    relatorio += "\n\nCÓDIGO DE RESTAURO (Não apagar se quiser importar depois):\n";
+    relatorio += JSON.stringify(dados);
+
+    const uri = `mailto:?subject=Relatório de Consumo Tabaco&body=${encodeURIComponent(relatorio)}`;
     window.location.href = uri;
 }
 
-// CORREÇÃO: FUNÇÃO RESTAURAR
 function importarBackup() {
     const input = document.createElement('input');
     input.type = 'file';
@@ -70,6 +91,5 @@ function reiniciarDia() {
     }
 }
 
-// Iniciar
 atualizar();
 setInterval(calcularTempoLimpo, 30000);
