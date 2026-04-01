@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise - Controlo de Tabaco</title>
+    <title>Análise Completa - Controlo de Tabaco</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --danger: #e74c3c; --p: #2ecc71; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        h1 { margin: 0; font-size: 1.5rem; }
+        .header { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .btn-voltar { background: var(--blue); color: white; padding: 10px 25px; border-radius: 15px; text-decoration: none; font-weight: bold; }
 
-        .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 400px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 25px; text-align: center; }
-        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
-        .stat-value { font-size: 1.4rem; font-weight: bold; }
+        .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 450px; margin-bottom: 20px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 20px; text-align: center; }
+        .stat-label { font-size: 0.65rem; color: #888; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; }
+        
+        .chart-container { background: var(--card); padding: 20px; border-radius: 25px; width: 100%; max-width: 450px; margin-bottom: 20px; box-sizing: border-box; }
+        h3 { font-size: 0.9rem; color: #888; margin-top: 0; text-transform: uppercase; }
         
         .val-blue { color: var(--blue); }
         .val-danger { color: var(--danger); }
@@ -24,7 +27,7 @@
 <body>
 
     <div class="header">
-        <h1>Análise</h1>
+        <h1 style="font-size: 1.4rem;">Análise</h1>
         <a href="index.html" class="btn-voltar">Voltar</a>
     </div>
 
@@ -33,73 +36,121 @@
             <span class="stat-label">Tempo a Fumar (Mês)</span>
             <div id="tempo-fumar" class="stat-value val-danger">0h 0m</div>
         </div>
-
         <div class="stat-card">
             <span class="stat-label">Gasto Mês</span>
             <div id="gasto-mes" class="stat-value val-blue">0.00€</div>
         </div>
-
         <div class="stat-card">
             <span class="stat-label">Média Anual (Dia)</span>
             <div id="media-anual" class="stat-value val-blue">0.0</div>
         </div>
-
         <div class="stat-card">
             <span class="stat-label">Projeção Ano</span>
             <div id="projecao-ano" class="stat-value val-danger">0€</div>
         </div>
     </div>
 
+    <div class="chart-container">
+        <h3>Gasto por Mês (€)</h3>
+        <canvas id="chartMeses"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h3>Últimos 7 Dias (Cigs)</h3>
+        <canvas id="chartDias"></canvas>
+    </div>
+
     <script>
-        const PRECO = 0.25; // Preço por cigarro
-        const MINUTOS_POR_CIGARRO = 3;
+        const PRECO = 0.25;
+        const MIN_POR_CIG = 3;
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        
-        function calcularEstatisticas() {
+
+        function inicializar() {
             const agora = new Date();
             const mesAtual = agora.toISOString().substring(0, 7);
             const anoAtual = agora.getFullYear().toString();
             
-            let totalCigarrosMes = 0;
-            let totalCigarrosAno = 0;
-            let diasComRegistoNoAno = 0;
+            let totalCigMes = 0;
+            let totalCigAno = 0;
+            let diasAtivosAno = 0;
+            
+            // Agrupamento para os gráficos
+            let mesesMap = {};
+            let ultimos7Dias = [];
 
-            Object.keys(dados).forEach(data => {
+            // Preparar últimos 7 dias
+            for(let i=6; i>=0; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let dataIso = d.toISOString().split('T')[0];
+                ultimos7Dias.push({
+                    data: dataIso,
+                    qtd: (dados[dataIso] ? dados[dataIso].total : 0)
+                });
+            }
+
+            // Processar todos os dados
+            Object.keys(dados).sort().forEach(data => {
                 const qtd = dados[data].total || 0;
+                const mes = data.substring(0, 7);
                 
-                // Soma para o mês atual
-                if (data.startsWith(mesAtual)) {
-                    totalCigarrosMes += qtd;
-                }
-                
-                // Soma para o ano atual
+                // Soma mensal/anual para os cards
+                if (mes === mesAtual) totalCigMes += qtd;
                 if (data.startsWith(anoAtual)) {
-                    totalCigarrosAno += qtd;
-                    if (qtd > 0) diasComRegistoNoAno++;
+                    totalCigAno += qtd;
+                    if(qtd > 0) diasAtivosAno++;
                 }
+
+                // Soma para gráfico mensal
+                mesesMap[mes] = (mesesMap[mes] || 0) + (qtd * PRECO);
             });
 
-            // 1. Tempo gasto a fumar no mês (Total cigarros * 3 min)
-            const minutosTotais = totalCigarrosMes * MINUTOS_POR_CIGARRO;
-            const horas = Math.floor(minutosTotais / 60);
-            const mins = minutosTotais % 60;
-            document.getElementById('tempo-fumar').innerText = `${horas}h ${mins}m`;
+            // Preencher os cards
+            const minTotais = totalCigMes * MIN_POR_CIG;
+            document.getElementById('tempo-fumar').innerText = `${Math.floor(minTotais/60)}h ${minTotais%60}m`;
+            document.getElementById('gasto-mes').innerText = (totalCigMes * PRECO).toFixed(2) + "€";
+            
+            const mediaDiaria = diasAtivosAno > 0 ? (totalCigAno / diasAtivosAno) : 0;
+            document.getElementById('media-anual').innerText = mediaDiaria.toFixed(1);
+            document.getElementById('projecao-ano').innerText = Math.round(mediaDiaria * 365 * PRECO) + "€";
 
-            // 2. Gasto Mês
-            document.getElementById('gasto-mes').innerText = (totalCigarrosMes * PRECO).toFixed(2) + "€";
-
-            // 3. Média Anual de cigarros por dia
-            // Dividimos pelo número de dias que têm registo ou pelo total de dias do ano decorridos
-            const mediaDiariaAno = diasComRegistoNoAno > 0 ? (totalCigarrosAno / diasComRegistoNoAno) : 0;
-            document.getElementById('media-anual').innerText = mediaDiariaAno.toFixed(1);
-
-            // 4. Projeção Anual de Gastos
-            // Cálculo baseado na média diária atual multiplicada por 365 dias
-            const projecaoFinanceira = mediaDiariaAno * 365 * PRECO;
-            document.getElementById('projecao-ano').innerText = Math.round(projecaoFinanceira) + "€";
+            // GERAR GRÁFICOS
+            renderizarGraficos(mesesMap, ultimos7Dias);
         }
 
-        calcularEstatisticas();
+        function renderizarGraficos(mesesMap, diasArray) {
+            // Gráfico Mensal
+            new Chart(document.getElementById('chartMeses'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(mesesMap),
+                    datasets: [{
+                        label: 'Euros',
+                        data: Object.values(mesesMap),
+                        backgroundColor: '#2ecc71',
+                        borderRadius: 8
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#444' } } } }
+            });
+
+            // Gráfico 7 Dias
+            new Chart(document.getElementById('chartDias'), {
+                type: 'bar',
+                data: {
+                    labels: diasArray.map(d => d.data.substring(8,10)),
+                    datasets: [{
+                        label: 'Cigarros',
+                        data: diasArray.map(d => d.qtd),
+                        backgroundColor: '#3498db',
+                        borderRadius: 8
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#444' } } } }
+            });
+        }
+
+        inicializar();
     </script>
 </body>
 </html>
