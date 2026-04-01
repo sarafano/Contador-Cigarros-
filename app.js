@@ -5,26 +5,24 @@ let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
 
 function atualizar() {
     if (!dados[HOJE]) dados[HOJE] = { total: 0 };
-    document.getElementById('contador').innerText = dados[HOJE].total;
+    const contadorEl = document.getElementById('contador');
+    if (contadorEl) contadorEl.innerText = dados[HOJE].total;
     localStorage.setItem('dadosCigarros', JSON.stringify(dados));
     calcularTempoLimpo();
 }
 
-// ADICIONAR CIGARRO
 function registar() {
     if (!dados[HOJE]) dados[HOJE] = { total: 0 };
     dados[HOJE].total++;
-    
     ultimoRegisto = new Date().getTime();
     localStorage.setItem('ultimoRegistoTime', ultimoRegisto);
-    
     atualizar();
 }
 
-// REMOVER CIGARRO (Caso se engane)
+// FUNÇÃO DO BOTÃO MENOS
 function remover() {
     if (dados[HOJE] && dados[HOJE].total > 0) {
-        if(confirm("Deseja descontar 1 cigarro?")) {
+        if(confirm("Descontar 1 cigarro?")) {
             dados[HOJE].total--;
             atualizar();
         }
@@ -49,9 +47,7 @@ function exportarParaFicheiro() {
 }
 
 function exportarEmail() {
-    let relatorio = "📊 RELATÓRIO DE CONSUMO E GASTOS\n";
-    relatorio += "==========================================\n\n";
-
+    let relatorio = "📊 RELATÓRIO\n\n";
     let resumoMensal = {};
     Object.keys(dados).forEach(data => {
         let mesAno = data.substring(0, 7);
@@ -59,20 +55,11 @@ function exportarEmail() {
         resumoMensal[mesAno].total += dados[data].total;
         resumoMensal[mesAno].gasto += (dados[data].total * PRECO);
     });
-
-    relatorio += "📅 RESUMO POR MÊS\n";
     Object.keys(resumoMensal).sort().reverse().forEach(mes => {
         relatorio += `${mes}: ${resumoMensal[mes].total} cigs (${resumoMensal[mes].gasto.toFixed(2)}€)\n`;
     });
-
-    relatorio += "\n📝 DETALHE DIÁRIO\n";
-    Object.keys(dados).sort().reverse().forEach(data => {
-        relatorio += `${data}: ${dados[data].total} cigs\n`;
-    });
-
-    relatorio += "\n\n⚙️ CÓDIGO DE RESTAURO:\n" + JSON.stringify(dados);
-    
-    window.location.href = `mailto:?subject=Relatorio Tabaco&body=${encodeURIComponent(relatorio)}`;
+    relatorio += "\nCÓDIGO:\n" + JSON.stringify(dados);
+    window.location.href = `mailto:?subject=Relatorio&body=${encodeURIComponent(relatorio)}`;
 }
 
 function importarBackup() {
@@ -85,7 +72,7 @@ function importarBackup() {
                 dados = JSON.parse(ev.target.result);
                 atualizar();
                 alert("Restaurado!");
-            } catch (err) { alert("Ficheiro inválido"); }
+            } catch (err) { alert("Erro no ficheiro"); }
         };
         reader.readAsText(e.target.files[0]);
     };
@@ -93,7 +80,7 @@ function importarBackup() {
 }
 
 function reiniciarDia() {
-    if(confirm('Limpar contagem de hoje?')) {
+    if(confirm('Reiniciar hoje?')) {
         dados[HOJE] = { total: 0 };
         atualizar();
     }
