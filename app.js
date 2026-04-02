@@ -1,4 +1,4 @@
-const PRECO = 0.25;
+const PRECO = 0.22;
 const HOJE = new Date().toISOString().split('T')[0];
 let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 let ultimoRegisto = localStorage.getItem('ultimoRegistoTime');
