@@ -11,7 +11,7 @@
         .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #333; color: white; padding: 8px 15px; border-radius: 10px; text-decoration: none; font-size: 0.8rem; }
         .pb-container { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
-        .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 25px; border-radius: 20px; position: relative; box-shadow: 0 8px 15px rgba(0,0,0,0.4); }
+        .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 25px; border-radius: 20px; position: relative; }
         .pb-time { font-size: 3rem; font-weight: bold; margin: 5px 0; }
         .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; box-sizing: border-box; }
         h3 { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 15px; text-align: center; }
@@ -29,7 +29,7 @@
         <div class="pb-card">
             <span style="font-size:1.5rem; position:absolute; top:-10px; left:46%;">🏆</span>
             <div style="font-size:0.65rem; font-weight:bold; color:rgba(255,255,255,0.8)">MÉDIA DE TEMPO SEM FUMAR</div>
-            <div id="media-valor" class="pb-time">...</div>
+            <div id="media-valor" class="pb-time">0h</div>
             <div style="font-size:0.75rem; color:rgba(255,255,255,0.6)">Desde 01/04/2026</div>
         </div>
     </div>
@@ -44,58 +44,60 @@
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
+        function getStartOfWeek(date, weeksAgo = 0) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1) - (7 * weeksAgo);
+            const start = new Date(d.setDate(diff));
+            start.setHours(0, 0, 0, 0);
+            return start;
+        }
+
         function atualizar() {
-            // 1. CÁLCULO DA MÉDIA (Inter-Cigarros)
-            let todosMomentos = [];
-            Object.keys(dados).forEach(dataStr => {
-                if (dataStr >= "2026-04-01" && dados[dataStr].horas) {
-                    dados[dataStr].horas.forEach(hStr => {
-                        // Criar data forçando a interpretação local (ano, mês-1, dia, hora, min)
+            // 1. MÉDIA (A partir de 01/04)
+            let momentos = [];
+            Object.keys(dados).filter(d => d >= "2026-04-01").forEach(dataStr => {
+                if (dados[dataStr].horas) {
+                    dados[dataStr].horas.forEach(h => {
                         const [ano, mes, dia] = dataStr.split('-').map(Number);
-                        const [hora, min] = hStr.split(':').map(Number);
-                        todosMomentos.push(new Date(ano, mes - 1, dia, hora, min).getTime());
+                        const [hora, min] = h.split(':').map(Number);
+                        momentos.push(new Date(ano, mes-1, dia, hora, min).getTime());
                     });
                 }
             });
+            momentos.sort((a,b) => a-b);
+            let somaI = 0;
+            for(let i=1; i<momentos.length; i++) somaI += (momentos[i]-momentos[i-1]);
+            const media = momentos.length > 1 ? (somaI / (momentos.length-1) / 3600000).toFixed(1) : "0";
+            document.getElementById('media-valor').innerText = media + "h";
 
-            todosMomentos.sort((a, b) => a - b);
-
-            let somaIntervalos = 0;
-            let totalIntervalos = 0;
-            for (let i = 1; i < todosMomentos.length; i++) {
-                somaIntervalos += (todosMomentos[i] - todosMomentos[i-1]);
-                totalIntervalos++;
-            }
-
-            const mediaHoras = totalIntervalos > 0 ? (somaIntervalos / totalIntervalos / 3600000).toFixed(1) : "0";
-            document.getElementById('media-valor').innerText = mediaHoras + "h";
-
-            // 2. CÁLCULO DAS 4 SEMANAS (Lógica de dias relativos)
+            // 2. 4 SEMANAS (Lógica de Segunda a Domingo)
+            const hoje = new Date();
             let contagemSemanas = [0, 0, 0, 0];
-            const hojeLocal = new Date();
-            hojeLocal.setHours(0,0,0,0);
+            const limites = [0, 1, 2, 3].map(w => getStartOfWeek(hoje, w).getTime());
 
             Object.keys(dados).forEach(dataStr => {
                 const [ano, mes, dia] = dataStr.split('-').map(Number);
-                const dataRegisto = new Date(ano, mes - 1, dia).getTime();
-                
-                const diffDias = Math.floor((hojeLocal - dataRegisto) / (1000 * 60 * 60 * 24));
-                
-                if (diffDias >= 0 && diffDias < 7) contagemSemanas[0] += (dados[dataStr].total || 0);
-                else if (diffDias >= 7 && diffDias < 14) contagemSemanas[1] += (dados[dataStr].total || 0);
-                else if (diffDias >= 14 && diffDias < 21) contagemSemanas[2] += (dados[dataStr].total || 0);
-                else if (diffDias >= 21 && diffDias < 28) contagemSemanas[3] += (dados[dataStr].total || 0);
+                const dataReg = new Date(ano, mes-1, dia).getTime();
+                const total = dados[dataStr].total || 0;
+
+                for(let i=0; i<4; i++) {
+                    if (dataReg >= limites[i] && (i === 0 || dataReg < limites[i-1])) {
+                        contagemSemanas[i] += total;
+                        break;
+                    }
+                }
             });
 
-            const ctx = document.getElementById('chartSemanas').getContext('2d');
-            new Chart(ctx, {
+            new Chart(document.getElementById('chartSemanas'), {
                 type: 'bar',
                 data: {
                     labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
                     datasets: [{
                         data: [contagemSemanas[3], contagemSemanas[2], contagemSemanas[1], contagemSemanas[0]],
                         backgroundColor: (c) => c.dataIndex === 3 ? '#3498db' : '#444',
-                        borderRadius: 8
+                        borderRadius: 8,
+                        barThickness: 30
                     }]
                 },
                 options: {
@@ -103,13 +105,12 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: '#333' } },
-                        x: { grid: { display: false }, ticks: { color: '#fff' } }
+                        y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#888' } },
+                        x: { grid: { display: false }, ticks: { color: '#fff', font: { weight: 'bold' } } }
                     }
                 }
             });
         }
-
         window.onload = atualizar;
     </script>
 </body>
