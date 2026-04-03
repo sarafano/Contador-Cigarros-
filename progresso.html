@@ -6,14 +6,15 @@
     <title>Progresso - Controlo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; }
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
         .pb-container { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
-        .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 25px; border-radius: 20px; position: relative; }
+        .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 25px; border-radius: 20px; position: relative; box-shadow: 0 8px 15px rgba(0,0,0,0.4); }
         .pb-time { font-size: 3rem; font-weight: bold; margin: 5px 0; }
         .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; box-sizing: border-box; }
+        h3 { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 15px; text-align: center; }
         .canvas-container { height: 250px; width: 100%; }
     </style>
 </head>
@@ -28,13 +29,13 @@
         <div class="pb-card">
             <span style="font-size:1.5rem; position:absolute; top:-10px; left:46%;">🏆</span>
             <div style="font-size:0.65rem; font-weight:bold; color:rgba(255,255,255,0.8)">MÉDIA DE TEMPO SEM FUMAR</div>
-            <div id="media-valor" class="pb-time">...</div>
+            <div id="media-valor" class="pb-time">0h</div>
             <div style="font-size:0.75rem; color:rgba(255,255,255,0.6)">Desde 01/04/2026</div>
         </div>
     </div>
 
     <div class="chart-box">
-        <h3 style="font-size: 0.7rem; color: #888; text-transform: uppercase; text-align: center;">Cigarros Totais por Semana</h3>
+        <h3>Cigarros Totais por Semana</h3>
         <div class="canvas-container">
             <canvas id="chartSemanas"></canvas>
         </div>
@@ -43,47 +44,49 @@
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
-        // Função precisa para número da semana
+        // Função para calcular o número da semana ISO
         function getWeek(date) {
-            const d = new Date(date);
-            d.setHours(0, 0, 0, 0);
-            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-            const yearStart = new Date(d.getFullYear(), 0, 1);
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
         function atualizar() {
-            // 1. MÉDIA (Correção do 0h)
+            // 1. CÁLCULO DA MÉDIA (Evita o erro de 0h)
             let momentos = [];
-            Object.keys(dados).forEach(dataStr => {
+            Object.keys(dados).sort().forEach(dataStr => {
                 if (dataStr >= "2026-04-01" && dados[dataStr].horas) {
                     const [y, m, d] = dataStr.split('-').map(Number);
-                    dados[dataStr].horas.forEach(h => {
-                        const [hr, min] = h.split(':').map(Number);
-                        momentos.push(new Date(y, m-1, d, hr, min).getTime());
+                    dados[dataStr].horas.forEach(hStr => {
+                        const [h, min] = hStr.split(':').map(Number);
+                        momentos.push(new Date(y, m - 1, d, h, min).getTime());
                     });
                 }
             });
-            momentos.sort((a, b) => a - b);
-            let soma = 0;
-            for(let i=1; i<momentos.length; i++) soma += (momentos[i]-momentos[i-1]);
-            const mediaH = momentos.length > 1 ? (soma / (momentos.length - 1) / 3600000).toFixed(1) : "0";
-            document.getElementById('media-valor').innerText = mediaH + "h";
 
-            // 2. GRÁFICO (Semana 14, 13, 12, 11)
+            momentos.sort((a, b) => a - b);
+            let somaIntervalos = 0;
+            for (let i = 1; i < momentos.length; i++) {
+                somaIntervalos += (momentos[i] - momentos[i-1]);
+            }
+            const mediaFinal = momentos.length > 1 ? (somaIntervalos / (momentos.length - 1) / 3600000).toFixed(1) : "0";
+            document.getElementById('media-valor').innerText = mediaFinal + "h";
+
+            // 2. GRÁFICO POR NÚMERO DE SEMANA (14, 13, 12, 11)
             const semanaAtual = getWeek(new Date()); 
-            let semanas = {
+            let contagemSemanas = {
                 [semanaAtual]: 0,
-                [semanaAtual-1]: 0,
-                [semanaAtual-2]: 0,
-                [semanaAtual-3]: 0
+                [semanaAtual - 1]: 0,
+                [semanaAtual - 2]: 0,
+                [semanaAtual - 3]: 0
             };
 
             Object.keys(dados).forEach(dataStr => {
                 const [y, m, d] = dataStr.split('-').map(Number);
-                const s = getWeek(new Date(y, m-1, d));
-                if (semanas.hasOwnProperty(s)) {
-                    semanas[s] += (dados[dataStr].total || 0);
+                const s = getWeek(new Date(y, m - 1, d));
+                if (contagemSemanas.hasOwnProperty(s)) {
+                    contagemSemanas[s] += (dados[dataStr].total || 0);
                 }
             });
 
@@ -92,9 +95,15 @@
                 data: {
                     labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
                     datasets: [{
-                        data: [semanas[semanaAtual-3], semanas[semanaAtual-2], semanas[semanaAtual-1], semanas[semanaAtual]],
-                        backgroundColor: (c) => c.dataIndex === 3 ? '#3498db' : '#555',
-                        borderRadius: 10
+                        data: [
+                            contagemSemanas[semanaAtual - 3], 
+                            contagemSemanas[semanaAtual - 2], 
+                            contagemSemanas[semanaAtual - 1], 
+                            contagemSemanas[semanaAtual]
+                        ],
+                        backgroundColor: (ctx) => ctx.dataIndex === 3 ? '#3498db' : '#555',
+                        borderRadius: 10,
+                        barThickness: 35
                     }]
                 },
                 options: {
@@ -103,11 +112,12 @@
                     plugins: { legend: { display: false } },
                     scales: {
                         y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#888' } },
-                        x: { grid: { display: false }, ticks: { color: '#fff' } }
+                        x: { grid: { display: false }, ticks: { color: '#fff', font: { weight: 'bold' } } }
                     }
                 }
             });
         }
+
         window.onload = atualizar;
     </script>
 </body>
