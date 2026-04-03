@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progresso - Controlo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --p: #2ecc71; --danger: #e74c3c; --gold: #f1c40f; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
+
+        .record-card { background: linear-gradient(135deg, #3a3a3a, #2d2d2d); width: 100%; max-width: 400px; padding: 25px; border-radius: 30px; text-align: center; margin-bottom: 20px; border: 1px solid #444; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .record-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+        .record-value { font-size: 2rem; font-weight: 800; color: var(--gold); margin: 5px 0; }
+        .record-label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+
+        .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; margin-bottom: 20px; box-sizing: border-box; }
+        h3 { font-size: 1rem; margin-top: 0; color: var(--blue); text-align: center; }
+        
+        .info-box { text-align: center; padding: 15px; border-radius: 15px; background: rgba(255,255,255,0.05); margin-top: 15px; font-weight: bold; }
+        .trend-down { color: var(--p); }
+        .trend-up { color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>O Teu Progresso</h2>
+        <a href="stats.html" class="btn-voltar">Sair</a>
+    </div>
+
+    <div class="record-card">
+        <span class="record-icon">🏆</span>
+        <span class="record-label">Maior Tempo Limpo</span>
+        <div id="pb-value" class="record-value">0h 0m</div>
+        <small style="color: #666;">O teu recorde histórico</small>
+    </div>
+
+    <div class="chart-box">
+        <h3>Esta Semana vs Passada</h3>
+        <canvas id="chartComp" style="max-height: 180px;"></canvas>
+        <div id="msg-comp" class="info-box">A analisar dados...</div>
+    </div>
+
+    <script>
+        const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        const HORAS_ATIVAS = 16;
+
+        function calcular() {
+            let estaSemana = 0;
+            let semanaPassada = 0;
+            let maxIntervalo = 0;
+
+            // 1. Lógica Semanal
+            for(let i=0; i<14; i++) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let dataIso = d.toISOString().split('T')[0];
+                let qtd = (dados[dataIso] ? dados[dataIso].total : 0);
+                
+                if (i < 7) estaSemana += qtd;
+                else semanaPassada += qtd;
+
+                // 2. Lógica de Recorde (Simplificada: melhor dia)
+                let intervaloDia = qtd > 1 ? (HORAS_ATIVAS / (qtd - 1)) : HORAS_ATIVAS;
+                if (intervaloDia > maxIntervalo) maxIntervalo = intervaloDia;
+            }
+
+            // Exibir Recorde
+            document.getElementById('pb-value').innerText = maxIntervalo.toFixed(1) + "h";
+
+            renderizar(estaSemana, semanaPassada);
+        }
+
+        function renderizar(atual, passada) {
+            new Chart(document.getElementById('chartComp'), {
+                type: 'bar',
+                data: {
+                    labels: ['Passada', 'Esta'],
+                    datasets: [{
+                        data: [passada, atual],
+                        backgroundColor: ['#555', atual <= passada ? '#2ecc71' : '#e74c3c'],
+                        borderRadius: 12
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, grid: { display: false } } }
+                }
+            });
+
+            const msg = document.getElementById('msg-comp');
+            if(passada > 0) {
+                const diff = ((atual - passada) / passada) * 100;
+                if(diff < 0) msg.innerHTML = `<span class="trend-down">📉 Menos ${Math.abs(diff).toFixed(0)}% cigarros!</span>`;
+                else if(diff > 0) msg.innerHTML = `<span class="trend-up">📈 Subiu ${diff.toFixed(0)}%. Força!</span>`;
+                else msg.innerText = "Mantiveste o ritmo.";
+            }
+        }
+
+        calcular();
+    </script>
+</body>
+</html>
