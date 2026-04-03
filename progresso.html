@@ -6,15 +6,14 @@
     <title>Progresso - Controlo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; }
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
-        .pb-container { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; }
+        .pb-container { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
         .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 25px; border-radius: 20px; position: relative; }
         .pb-time { font-size: 3rem; font-weight: bold; margin: 5px 0; }
         .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; box-sizing: border-box; }
-        h3 { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 15px; text-align: center; }
         .canvas-container { height: 250px; width: 100%; }
     </style>
 </head>
@@ -35,7 +34,7 @@
     </div>
 
     <div class="chart-box">
-        <h3>Cigarros Totais por Semana</h3>
+        <h3 style="font-size: 0.7rem; color: #888; text-transform: uppercase; text-align: center;">Cigarros Totais por Semana</h3>
         <div class="canvas-container">
             <canvas id="chartSemanas"></canvas>
         </div>
@@ -44,46 +43,47 @@
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
-        // Função para obter o número da semana (ISO-8601)
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        // Função precisa para número da semana
+        function getWeek(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
         function atualizar() {
-            // 1. MÉDIA (Desde 01/04)
+            // 1. MÉDIA (Correção do 0h)
             let momentos = [];
             Object.keys(dados).forEach(dataStr => {
                 if (dataStr >= "2026-04-01" && dados[dataStr].horas) {
                     const [y, m, d] = dataStr.split('-').map(Number);
-                    dados[dataStr].horas.forEach(hStr => {
-                        const [hrs, min] = hStr.split(':').map(Number);
-                        momentos.push(new Date(y, m - 1, d, hrs, min).getTime());
+                    dados[dataStr].horas.forEach(h => {
+                        const [hr, min] = h.split(':').map(Number);
+                        momentos.push(new Date(y, m-1, d, hr, min).getTime());
                     });
                 }
             });
             momentos.sort((a, b) => a - b);
-            let somaMs = 0;
-            for (let i = 1; i < momentos.length; i++) somaMs += (momentos[i] - momentos[i-1]);
-            const mediaH = momentos.length > 1 ? (somaMs / (momentos.length - 1) / 3600000).toFixed(1) : "0";
+            let soma = 0;
+            for(let i=1; i<momentos.length; i++) soma += (momentos[i]-momentos[i-1]);
+            const mediaH = momentos.length > 1 ? (soma / (momentos.length - 1) / 3600000).toFixed(1) : "0";
             document.getElementById('media-valor').innerText = mediaH + "h";
 
-            // 2. GRÁFICO POR NÚMERO DE SEMANA
-            const semanaAtual = getWeekNumber(new Date()); // Semana 14
-            let totaisPorSemana = {
-                [semanaAtual]: 0,     // ESTA (14)
-                [semanaAtual - 1]: 0, // Passada (13)
-                [semanaAtual - 2]: 0, // 2 Sem. (12)
-                [semanaAtual - 3]: 0  // 3 Sem. (11)
+            // 2. GRÁFICO (Semana 14, 13, 12, 11)
+            const semanaAtual = getWeek(new Date()); 
+            let semanas = {
+                [semanaAtual]: 0,
+                [semanaAtual-1]: 0,
+                [semanaAtual-2]: 0,
+                [semanaAtual-3]: 0
             };
 
             Object.keys(dados).forEach(dataStr => {
                 const [y, m, d] = dataStr.split('-').map(Number);
-                const numSemana = getWeekNumber(new Date(y, m - 1, d));
-                if (totaisPorSemana.hasOwnProperty(numSemana)) {
-                    totaisPorSemana[numSemana] += (dados[dataStr].total || 0);
+                const s = getWeek(new Date(y, m-1, d));
+                if (semanas.hasOwnProperty(s)) {
+                    semanas[s] += (dados[dataStr].total || 0);
                 }
             });
 
@@ -92,13 +92,8 @@
                 data: {
                     labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
                     datasets: [{
-                        data: [
-                            totaisPorSemana[semanaAtual - 3], 
-                            totaisPorSemana[semanaAtual - 2], 
-                            totaisPorSemana[semanaAtual - 1], 
-                            totaisPorSemana[semanaAtual]
-                        ],
-                        backgroundColor: (ctx) => ctx.dataIndex === 3 ? '#3498db' : '#555',
+                        data: [semanas[semanaAtual-3], semanas[semanaAtual-2], semanas[semanaAtual-1], semanas[semanaAtual]],
+                        backgroundColor: (c) => c.dataIndex === 3 ? '#3498db' : '#555',
                         borderRadius: 10
                     }]
                 },
