@@ -5,48 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controlo de Tabaco</title>
     <style>
-        :root { --bg: #121212; --card: #1e1e1e; --txt: #ffffff; --blue: #3498db; --p: #2ecc71; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        :root { --bg: #121212; --card: #222222; --txt: #ffffff; --green: #2ecc71; --red: #e74c3c; --blue: #3498db; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        .container { text-align: center; width: 90%; max-width: 400px; }
-        .counter { font-size: 5rem; font-weight: 800; margin: 20px 0; color: var(--blue); }
-        .label { font-size: 1.2rem; color: #888; text-transform: uppercase; letter-spacing: 2px; }
+        /* Card Principal */
+        .main-card { background: var(--card); width: 100%; max-width: 400px; border-radius: 35px; padding: 40px 20px; text-align: center; margin-top: 20px; box-sizing: border-box; }
+        .label-hoje { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        .counter { font-size: 8rem; font-weight: bold; color: var(--green); line-height: 1; margin: 10px 0; }
+        .limpo-txt { background: rgba(52, 152, 219, 0.1); color: var(--blue); padding: 8px 20px; border-radius: 20px; font-size: 0.9rem; display: inline-block; margin-bottom: 30px; }
 
-        .btn-add { 
-            background: var(--blue); border: none; width: 150px; height: 150px; 
-            border-radius: 50%; color: white; font-size: 3rem; font-weight: bold;
-            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.4); cursor: pointer;
-            transition: transform 0.1s; -webkit-tap-highlight-color: transparent;
-        }
-        .btn-add:active { transform: scale(0.9); }
+        /* Botões de Ação */
+        .controls { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 20px; }
+        .btn-circle { border: none; border-radius: 50%; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+        .btn-plus { width: 90px; height: 90px; background: var(--green); font-size: 2.5rem; box-shadow: 0 0 20px rgba(46, 204, 113, 0.3); }
+        .btn-minus { width: 60px; height: 60px; background: var(--red); font-size: 1.5rem; opacity: 0.8; }
 
-        .nav-links { margin-top: 50px; display: flex; gap: 20px; }
-        .nav-links a { color: #888; text-decoration: none; font-size: 0.9rem; font-weight: bold; padding: 10px 20px; border: 1px solid #333; border-radius: 15px; }
+        /* Botões Inferiores */
+        .menu-container { width: 100%; max-width: 400px; margin-top: 25px; display: flex; flex-direction: column; gap: 12px; }
+        .btn-wide { background: var(--card); border: 1px solid #333; color: white; padding: 18px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: bold; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-blue { background: var(--blue); border: none; }
+        .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         
-        .last-reg { margin-top: 20px; font-size: 0.8rem; color: #555; }
+        .sos-btn { position: absolute; top: 25px; right: 20px; background: none; border: 1px solid #f39c12; color: #f39c12; padding: 5px 15px; border-radius: 15px; font-size: 0.8rem; text-decoration: none; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="label">Hoje</div>
+    <a href="#" class="sos-btn">SOS 🔥</a>
+
+    <div class="main-card">
+        <div class="label-hoje">HOJE</div>
         <div id="display-total" class="counter">0</div>
         
-        <button class="btn-add" onclick="registarCigarro()">+</button>
-        
-        <div id="last-time" class="last-reg">Nenhum registo hoje</div>
+        <div id="limpo-box" class="limpo-txt">Limpo há: <span id="tempo-limpo">0h 0m</span></div>
 
-        <div class="nav-links">
-            <a href="stats.html">Estatísticas</a>
-            <a href="progresso.html" style="color: #cd7f32; border-color: #cd7f32;">🏆 Progresso</a>
+        <div class="controls">
+            <button class="btn-circle btn-minus" onclick="removerCigarro()">-</button>
+            <button class="btn-circle btn-plus" onclick="adicionarCigarro()">+</button>
         </div>
     </div>
 
-    <script>
-        // Configurações básicas
-        const DATA_CORTA = "2026-04-01"; // Data definida por ti para início da contagem
+    <div class="menu-container">
+        <a href="stats.html" class="btn-wide btn-blue">📊 Estatísticas Detalhadas</a>
+        
+        <div class="grid-half">
+            <a href="#" class="btn-wide">💾 Backup</a>
+            <a href="#" class="btn-wide">📧 Email</a>
+        </div>
 
-        function registarCigarro() {
+        <a href="progresso.html" class="btn-wide" style="border-color: var(--blue); color: var(--blue);">🏆 Restaurar de Ficheiro</a>
+        
+        <div onclick="reiniciarDia()" style="color: #444; font-size: 0.7rem; text-align: center; margin-top: 10px; cursor: pointer;">Reiniciar dia</div>
+    </div>
+
+    <script>
+        function adicionarCigarro() {
             const agora = new Date();
             const dataIso = agora.toISOString().split('T')[0];
             const horaAtual = agora.getHours().toString().padStart(2, '0') + ":" + 
@@ -54,40 +67,65 @@
 
             let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
-            // Inicializa o dia se não existir
             if (!dados[dataIso]) {
                 dados[dataIso] = { total: 0, horas: [] };
             }
+            if (!dados[dataIso].horas) dados[dataIso].horas = [];
 
-            // Garante que a estrutura de 'horas' existe (importante para o gráfico de períodos)
-            if (!dados[dataIso].horas) {
-                dados[dataIso].horas = [];
-            }
-
-            // Incrementa o total e guarda a hora exata
             dados[dataIso].total += 1;
             dados[dataIso].horas.push(horaAtual);
 
-            // Guarda no telemóvel
             localStorage.setItem('dadosCigarros', JSON.stringify(dados));
-            
             atualizarInterface();
         }
 
-        function atualizarInterface() {
+        function removerCigarro() {
             const dataIso = new Date().toISOString().split('T')[0];
-            const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-            
-            const totalHoje = dados[dataIso] ? dados[dataIso].total : 0;
-            document.getElementById('display-total').innerText = totalHoje;
+            let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
-            if (dados[dataIso] && dados[dataIso].horas && dados[dataIso].horas.length > 0) {
-                const ultimaHora = dados[dataIso].horas[dados[dataIso].horas.length - 1];
-                document.getElementById('last-time').innerText = "Último registo às " + ultimaHora;
+            if (dados[dataIso] && dados[dataIso].total > 0) {
+                dados[dataIso].total -= 1;
+                dados[dataIso].horas.pop(); // Remove a última hora registada
+                localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+                atualizarInterface();
             }
         }
 
-        // Executa ao abrir a página
+        function atualizarInterface() {
+            const agora = new Date();
+            const dataIso = agora.toISOString().split('T')[0];
+            const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+            
+            const diaAtual = dados[dataIso] || { total: 0, horas: [] };
+            document.getElementById('display-total').innerText = diaAtual.total;
+
+            // Lógica do tempo limpo
+            if (diaAtual.horas && diaAtual.horas.length > 0) {
+                const ultimaHoraStr = diaAtual.horas[diaAtual.horas.length - 1];
+                const [h, m] = ultimaHoraStr.split(':');
+                const ultimaData = new Date();
+                ultimaData.setHours(h, m, 0);
+
+                const diffMs = agora - ultimaData;
+                const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMins = Math.floor((diffMs / (1000 * 60)) % 60);
+                document.getElementById('tempo-limpo').innerText = diffHoras + "h " + diffMins + "m";
+            } else {
+                document.getElementById('tempo-limpo').innerText = "---";
+            }
+        }
+
+        function reiniciarDia() {
+            if(confirm("Reiniciar os dados de hoje?")) {
+                const dataIso = new Date().toISOString().split('T')[0];
+                let dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+                delete dados[dataIso];
+                localStorage.setItem('dadosCigarros', JSON.stringify(dados));
+                atualizarInterface();
+            }
+        }
+
+        setInterval(atualizarInterface, 60000); // Atualiza o tempo limpo a cada minuto
         atualizarInterface();
     </script>
 </body>
