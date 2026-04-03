@@ -4,21 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Progresso - Controlo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .header { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
-        iframe { width: 100%; max-width: 450px; border: none; margin-bottom: 15px; border-radius: 25px; background: transparent; }
+        :root { --bg: #121212; --card: #1e1e1e; --txt: #ffffff; --blue: #3498db; --accent: #a8704d; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-voltar { background: #333; color: white; padding: 8px 15px; border-radius: 10px; text-decoration: none; font-size: 0.8rem; }
+        
+        /* Card do Troféu - Média */
+        .pb-container { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
+        .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 25px; border-radius: 20px; position: relative; box-shadow: 0 8px 15px rgba(0,0,0,0.4); }
+        .pb-time { font-size: 3rem; font-weight: bold; margin: 5px 0; }
+        
+        /* Gráfico Semanas */
+        .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; box-sizing: border-box; }
+        h3 { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
+        .canvas-container { height: 250px; width: 100%; }
     </style>
 </head>
 <body>
+
     <div class="header">
         <h2 style="font-size: 1.1rem; margin: 0;">O Teu Progresso</h2>
         <a href="index.html" class="btn-voltar">Voltar</a>
     </div>
 
-    <iframe src="grafico_media.html" height="240"></iframe>
+    <div class="pb-container">
+        <div class="pb-card">
+            <span style="font-size:1.5rem; position:absolute; top:-10px; left:46%;">🏆</span>
+            <div style="font-size:0.65rem; font-weight:bold; color:rgba(255,255,255,0.8)">MÉDIA DE TEMPO SEM FUMAR</div>
+            <div id="media-valor" class="pb-time">0h</div>
+            <div style="font-size:0.75rem; color:rgba(255,255,255,0.6)">Desde 01/04/2026</div>
+            <span style="position:absolute; bottom:10px; right:15px; color:#2ecc71;">✔</span>
+        </div>
+    </div>
 
-    <iframe src="grafico_semanas.html" height="320"></iframe>
+    <div class="chart-box">
+        <h3>Cigarros Totais por Semana</h3>
+        <div class="canvas-container">
+            <canvas id="chartSemanas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        const DATA_INICIO = "2026-04-01";
+
+        function atualizarTudo() {
+            // --- CÁLCULO DA MÉDIA ---
+            let momentos = [];
+            Object.keys(dados).filter(d => d >= DATA_INICIO).forEach(data => {
+                if(dados[data].horas && dados[data].horas.length > 0) {
+                    dados[data].horas.forEach(h => {
+                        let dObj = new Date(data + 'T' + h);
+                        if (!isNaN(dObj)) momentos.push(dObj);
+                    });
+                }
+            });
+            momentos.sort((a, b) => a - b);
+            
+            let totalH = 0;
+            for(let i = 1; i < momentos.length; i++) {
+                totalH += (momentos[i] - momentos[i-1]) / 3600000;
+            }
+            const mediaFinal = momentos.length > 1 ? (totalH / (momentos.length - 1)).toFixed(1) : "0";
+            document.getElementById('media-valor').innerText = mediaFinal + "h";
+
+            // --- CÁLCULO DAS 4 SEMANAS ---
+            const hoje = new Date();
+            // Função para pegar a segunda-feira da semana de uma data
+            function getSegunda(d) {
+                let date = new Date(d);
+                let day = date.getDay();
+                let diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(date.setDate(diff)).setHours(0,0,0,0);
+            }
+
+            const segundaEsta = getSegunda(hoje);
+            let semanasContagem = [0, 0, 0, 0]; // 0:esta, 1:passada, 2:ante, 3:3atras
+
+            Object.keys(dados).forEach(dataStr => {
+                let dataPonto = new Date(dataStr + 'T00:00:00').getTime();
+                let diffMs = segundaEsta - dataPonto;
+                let diffSemanas = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+
+                if (diffSemanas >= 0 && diffSemanas <= 3) {
+                    semanasContagem[diffSemanas] += (dados[dataStr].total || 0);
+                }
+            });
+
+            const labels = ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'];
+            const valores = [semanasContagem[3], semanasContagem[2], semanasContagem[1], semanasContagem[0]];
+
+            // --- RENDERIZAR GRÁFICO ---
+            new Chart(document.getElementById('chartSemanas'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: (ctx) => ctx.dataIndex === 3 ? '#3498db' : '#444',
+                        borderRadius: 8,
+                        barThickness: 30
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#888' } },
+                        x: { grid: { display: false }, ticks: { color: '#fff', font: { weight: 'bold' } } }
+                    }
+                }
+            });
+        }
+
+        window.onload = atualizarTudo;
+    </script>
 </body>
 </html>
