@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #2d2d2d; color: white; font-family: sans-serif; padding: 20px; border-radius: 25px; height: 280px; margin: 0; overflow: hidden; }
+        h3 { font-size: 0.8rem; color: #888; text-align: center; text-transform: uppercase; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h3>Semana Passada vs Esta Semana</h3>
+    <canvas id="chart"></canvas>
+    <script>
+        const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        let estaS = 0, passadaS = 0;
+        const hoje = new Date();
+        Object.keys(dados).forEach(data => {
+            const diff = Math.floor((hoje - new Date(data)) / 86400000);
+            const total = dados[data].total || 0;
+            if(diff < 7) estaS += total;
+            else if(diff < 14) passadaS += total;
+        });
+
+        new Chart(document.getElementById('chart'), {
+            type: 'bar',
+            data: {
+                labels: ['PASSADA', 'ESTA'],
+                datasets: [{ data: [passadaS, estaS], backgroundColor: ['#e74c3c', '#3498db'], borderRadius: 10 }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#444' } } } }
+        });
+    </script>
+</body>
+</html>
