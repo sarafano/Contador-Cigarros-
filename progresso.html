@@ -4,17 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Progresso - Controlo</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --p: #2ecc71; --danger: #e74c3c; --tarde: #f1c40f; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: -apple-system, sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .header { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
-        .pb-container { background: #252525; width: 100%; max-width: 450px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; border: 1px solid #333; box-sizing: border-box; }
-        .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 30px 20px; border-radius: 25px; position: relative; margin: 0 auto 10px auto; width: 85%; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        .pb-time { font-size: 2.2rem; font-weight: 800; color: white; margin: 10px 0; }
-        .chart-box { background: var(--card); width: 100%; max-width: 450px; padding: 20px; border-radius: 25px; margin-bottom: 20px; box-sizing: border-box; }
-        h3 { font-size: 0.8rem; color: #888; text-align: center; text-transform: uppercase; margin-bottom: 15px; }
+        iframe { width: 100%; max-width: 450px; border: none; margin-bottom: 15px; border-radius: 25px; background: transparent; }
     </style>
 </head>
 <body>
@@ -23,95 +17,8 @@
         <a href="index.html" class="btn-voltar">Voltar</a>
     </div>
 
-    <div class="pb-container">
-        <div class="pb-card">
-            <span style="font-size:2rem; position:absolute; top:-15px; left:46%;">🏆</span>
-            <div style="font-size:0.7rem; font-weight:bold; color:rgba(255,255,255,0.8)">MÉDIA DE TEMPO SEM FUMAR</div>
-            <div id="pb-value" class="pb-time">0h</div>
-            <span style="position:absolute; bottom:10px; right:15px; color:#2ecc71; font-size:1.2rem;">✔</span>
-        </div>
-        <div id="pb-data" style="font-size:0.8rem; color:#888">Desde 01/04/2026</div>
-    </div>
+    <iframe src="grafico_media.html" height="240"></iframe>
 
-    <div class="chart-box">
-        <h3>SEMANA PASSADA VS ESTA SEMANA</h3>
-        <canvas id="chartComparativo" style="max-height: 200px;"></canvas>
-    </div>
-
-    <script>
-        const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        const DATA_INICIO = "2026-04-01";
-
-        function inicializar() {
-            let totalIntervalosHoras = 0;
-            let contagemIntervalos = 0;
-            let semanaPassada = 0;
-            let estaSemana = 0;
-
-            const hoje = new Date();
-            const todasDatas = Object.keys(dados).sort();
-
-            // 1. Cálculo da Média Sem Fumar (Desde Dia 1)
-            let todosMomentos = [];
-            todasDatas.forEach(dataStr => {
-                if (dataStr >= DATA_INICIO && dados[dataStr].horas) {
-                    dados[dataStr].horas.forEach(hora => {
-                        const [h, m] = hora.split(':');
-                        let dataHora = new Date(dataStr);
-                        dataHora.setHours(h, m, 0);
-                        todosMomentos.push(dataHora);
-                    });
-                }
-            });
-
-            // Ordenar todos os registos por tempo
-            todosMomentos.sort((a, b) => a - b);
-
-            for (let i = 1; i < todosMomentos.length; i++) {
-                const diffMs = todosMomentos[i] - todosMomentos[i-1];
-                totalIntervalosHoras += (diffMs / (1000 * 60 * 60));
-                contagemIntervalos++;
-            }
-
-            const mediaFinal = contagemIntervalos > 0 ? (totalIntervalosHoras / contagemIntervalos).toFixed(1) : "0";
-            document.getElementById('pb-value').innerText = mediaFinal + "h";
-
-            // 2. Cálculo das Semanas (Passada vs Esta)
-            todasDatas.forEach(dataStr => {
-                const dataObj = new Date(dataStr);
-                const diffDias = Math.floor((hoje - dataObj) / (1000 * 60 * 60 * 24));
-                const total = dados[dataStr].total || 0;
-
-                if (diffDias >= 0 && diffDias < 7) {
-                    estaSemana += total;
-                } else if (diffDias >= 7 && diffDias < 14) {
-                    semanaPassada += total;
-                }
-            });
-
-            // 3. Gráfico Comparativo de Semanas
-            new Chart(document.getElementById('chartComparativo'), {
-                type: 'bar',
-                data: {
-                    labels: ['PASSADA', 'ESTA'],
-                    datasets: [{
-                        data: [semanaPassada, estaSemana],
-                        backgroundColor: ['#e74c3c', '#3498db'],
-                        borderRadius: 10,
-                        barThickness: 60
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#888' } },
-                        x: { grid: { display: false }, ticks: { color: '#fff', font: { weight: 'bold' } } }
-                    }
-                }
-            });
-        }
-
-        inicializar();
-    </script>
+    <iframe src="grafico_semanas.html" height="320"></iframe>
 </body>
 </html>
