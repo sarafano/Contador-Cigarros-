@@ -44,55 +44,46 @@
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
-        function getInicioSemana(date, semanasAtras = 0) {
-            let d = new Date(date);
-            let day = d.getDay();
-            let diff = d.getDate() - day + (day === 0 ? -6 : 1) - (7 * semanasAtras);
-            let inicio = new Date(d.setDate(diff));
-            inicio.setHours(0, 0, 0, 0);
-            return inicio;
-        }
-
         function atualizar() {
-            // 1. Cálculo da Média (Filtro por data local para evitar 0h)
+            // --- 1. CORREÇÃO DA MÉDIA ---
             let momentos = [];
-            Object.keys(dados).sort().forEach(dataStr => {
+            Object.keys(dados).forEach(dataStr => {
                 if (dataStr >= "2026-04-01" && dados[dataStr].horas) {
+                    const [ano, mes, dia] = dataStr.split('-').map(Number);
                     dados[dataStr].horas.forEach(hStr => {
-                        const [ano, mes, dia] = dataStr.split('-').map(Number);
                         const [h, m] = hStr.split(':').map(Number);
                         momentos.push(new Date(ano, mes - 1, dia, h, m).getTime());
                     });
                 }
             });
-
             momentos.sort((a, b) => a - b);
-            let somaMs = 0;
+            let somaIntervalos = 0;
             for (let i = 1; i < momentos.length; i++) {
-                somaMs += (momentos[i] - momentos[i-1]);
+                somaIntervalos += (momentos[i] - momentos[i-1]);
             }
-            const mediaH = momentos.length > 1 ? (somaMs / (momentos.length - 1) / 3600000).toFixed(1) : "0";
-            document.getElementById('media-valor').innerText = mediaH + "h";
+            const mediaFinal = momentos.length > 1 ? (somaIntervalos / (momentos.length - 1) / 3600000).toFixed(1) : "0";
+            document.getElementById('media-valor').innerText = mediaFinal + "h";
 
-            // 2. Gráfico das 4 Semanas (Fixando Segunda a Domingo)
+            // --- 2. CORREÇÃO DAS 4 SEMANAS (Lógica por dias corridos) ---
             const hoje = new Date();
-            let totaisSemanas = [0, 0, 0, 0]; // [Esta, Passada, 2 atrás, 3 atrás]
+            hoje.setHours(0,0,0,0);
             
-            const limites = [0, 1, 2, 3].map(w => getInicioSemana(hoje, w).getTime());
+            let contagemSemanas = [0, 0, 0, 0]; // [Esta, Passada, 2 atraz, 3 atraz]
 
             Object.keys(dados).forEach(dataStr => {
                 const [ano, mes, dia] = dataStr.split('-').map(Number);
-                const dataReg = new Date(ano, mes - 1, dia).getTime();
-                const total = dados[dataStr].total || 0;
+                const dataRegisto = new Date(ano, mes - 1, dia);
+                dataRegisto.setHours(0,0,0,0);
+                
+                // Diferença exata em dias
+                const diffMs = hoje.getTime() - dataRegisto.getTime();
+                const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-                for (let i = 0; i < 4; i++) {
-                    // Se a data do registo for maior ou igual ao início daquela semana
-                    // e (estivermos na semana atual OU for menor que o início da semana seguinte)
-                    if (dataReg >= limites[i] && (i === 0 || dataReg < limites[i-1])) {
-                        totaisSemanas[i] += total;
-                        break;
-                    }
-                }
+                // Agrupar em blocos de 7 dias
+                if (diffDias >= 0 && diffDias < 7) contagemSemanas[0] += (dados[dataStr].total || 0);
+                else if (diffDias >= 7 && diffDias < 14) contagemSemanas[1] += (dados[dataStr].total || 0);
+                else if (diffDias >= 14 && diffDias < 21) contagemSemanas[2] += (dados[dataStr].total || 0);
+                else if (diffDias >= 21 && diffDias < 28) contagemSemanas[3] += (dados[dataStr].total || 0);
             });
 
             new Chart(document.getElementById('chartSemanas'), {
@@ -100,7 +91,7 @@
                 data: {
                     labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
                     datasets: [{
-                        data: [totaisSemanas[3], totaisSemanas[2], totaisSemanas[1], totaisSemanas[0]],
+                        data: [contagemSemanas[3], contagemSemanas[2], contagemSemanas[1], contagemSemanas[0]],
                         backgroundColor: (ctx) => ctx.dataIndex === 3 ? '#3498db' : '#555',
                         borderRadius: 10,
                         barThickness: 35
@@ -117,7 +108,6 @@
                 }
             });
         }
-
         window.onload = atualizar;
     </script>
 </body>
