@@ -32,7 +32,7 @@
             <div id="pb-value" class="pb-time">0h</div>
             <span style="position:absolute; bottom:10px; right:15px; color:#2ecc71; font-size:1.2rem;">✔</span>
         </div>
-        <div id="pb-data" style="font-size:0.8rem; color:#888">Recorde Histórico</div>
+        <div id="pb-data" style="font-size:0.8rem; color:#888">Desde 01/04/2026</div>
     </div>
 
     <div class="chart-box">
@@ -52,30 +52,32 @@
 
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
+        const DATA_LIMITE = "2026-04-01";
 
         function inicializar() {
             let maxHorasLimpo = 0;
             let dataRecorde = "";
             let semanas = [0, 0, 0, 0];
-            
-            let diasLabels = [];
-            let mData = [], tData = [], nData = [];
+            let diasLabels = [], mData = [], tData = [], nData = [];
 
-            // 1. Processar Recorde e Semanas (Lógica de datas reais)
-            const todasDatas = Object.keys(dados).sort();
+            // Filtrar e ordenar apenas datas de Abril em diante
+            const todasDatas = Object.keys(dados)
+                .filter(d => d >= DATA_LIMITE)
+                .sort();
             
+            // 1. Processar Recorde e Semanas
             todasDatas.forEach((dataStr, index) => {
                 const dia = dados[dataStr];
                 const totalCigs = dia.total || 0;
                 
-                // Contagem Semanal
+                // Contagem Semanal (Mantém histórico para o gráfico de barras azul)
                 const diffDias = Math.floor((new Date() - new Date(dataStr)) / (1000 * 60 * 60 * 24));
                 if(diffDias < 7) semanas[3] += totalCigs;
                 else if(diffDias < 14) semanas[2] += totalCigs;
                 else if(diffDias < 21) semanas[1] += totalCigs;
                 else if(diffDias < 28) semanas[0] += totalCigs;
 
-                // Cálculo de Recorde (Intervalo entre dias)
+                // Cálculo de Recorde entre registos (Apenas de Abril)
                 if (index > 0) {
                     const dataAtual = new Date(dataStr);
                     const dataAnterior = new Date(todasDatas[index-1]);
@@ -95,7 +97,7 @@
                 diasLabels.push(iso.substring(8,10) + "/" + iso.substring(5,7));
 
                 let m=0, t=0, n=0;
-                if(dados[iso] && dados[iso].horas) {
+                if(iso >= DATA_LIMITE && dados[iso] && dados[iso].horas) {
                     dados[iso].horas.forEach(h => {
                         let hr = parseInt(h.split(':')[0]);
                         if(hr >= 5 && hr < 12) m++;
@@ -106,9 +108,9 @@
                 mData.push(m); tData.push(t); nData.push(n);
             }
 
-            // Exibir Valores na Interface
+            // Atualizar UI
             document.getElementById('pb-value').innerText = maxHorasLimpo + "h";
-            document.getElementById('pb-data').innerText = "Data do recorde: " + (dataRecorde.split('-').reverse().join('/') || "N/A");
+            document.getElementById('pb-data').innerText = "Recorde desde 1 de Abril: " + (dataRecorde.split('-').reverse().join('/') || "---");
 
             // Renderizar Gráficos
             new Chart(document.getElementById('chartPeriodos'), {
