@@ -22,7 +22,7 @@
 
         /* Botões Inferiores */
         .menu-container { width: 100%; max-width: 400px; margin-top: 25px; display: flex; flex-direction: column; gap: 12px; }
-        .btn-wide { background: var(--card); border: 1px solid #333; color: white; padding: 18px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: bold; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-wide { background: var(--card); border: 1px solid #333; color: white; padding: 18px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: bold; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
         .btn-blue { background: var(--blue); border: none; }
         .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         
@@ -49,11 +49,13 @@
         <a href="stats.html" class="btn-wide btn-blue">📊 Estatísticas Detalhadas</a>
         
         <div class="grid-half">
-            <a href="#" class="btn-wide">💾 Backup</a>
-            <a href="#" class="btn-wide">📧 Email</a>
+            <div onclick="fazerBackup()" class="btn-wide">💾 Backup</div>
+            <div onclick="enviarEmail()" class="btn-wide">📧 Email</div>
         </div>
 
-        <a href="progresso.html" class="btn-wide" style="border-color: var(--blue); color: var(--blue);">🏆 Restaurar de Ficheiro</a>
+        <div onclick="restaurarFicheiro()" class="btn-wide" style="border-color: var(--blue); color: var(--blue);">
+            🏆 Restaurar de Ficheiro
+        </div>
         
         <div onclick="reiniciarDia()" style="color: #444; font-size: 0.7rem; text-align: center; margin-top: 10px; cursor: pointer;">Reiniciar dia</div>
     </div>
@@ -85,7 +87,7 @@
 
             if (dados[dataIso] && dados[dataIso].total > 0) {
                 dados[dataIso].total -= 1;
-                dados[dataIso].horas.pop(); // Remove a última hora registada
+                if (dados[dataIso].horas) dados[dataIso].horas.pop();
                 localStorage.setItem('dadosCigarros', JSON.stringify(dados));
                 atualizarInterface();
             }
@@ -99,7 +101,6 @@
             const diaAtual = dados[dataIso] || { total: 0, horas: [] };
             document.getElementById('display-total').innerText = diaAtual.total;
 
-            // Lógica do tempo limpo
             if (diaAtual.horas && diaAtual.horas.length > 0) {
                 const ultimaHoraStr = diaAtual.horas[diaAtual.horas.length - 1];
                 const [h, m] = ultimaHoraStr.split(':');
@@ -115,6 +116,46 @@
             }
         }
 
+        function fazerBackup() {
+            const dados = localStorage.getItem('dadosCigarros');
+            if (!dados) return alert("Não há dados para exportar.");
+            const blob = new Blob([dados], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'backup_tabaco.json';
+            a.click();
+        }
+
+        function restaurarFicheiro() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = readerEvent => {
+                    const content = readerEvent.target.result;
+                    try {
+                        JSON.parse(content);
+                        localStorage.setItem('dadosCigarros', content);
+                        alert("Dados restaurados com sucesso!");
+                        location.reload();
+                    } catch (err) {
+                        alert("Ficheiro inválido.");
+                    }
+                }
+                reader.readAsText(file);
+            }
+            input.click();
+        }
+
+        function enviarEmail() {
+            const dados = localStorage.getItem('dadosCigarros');
+            const corpo = encodeURIComponent("Dados de Backup: \n\n" + dados);
+            window.location.href = `mailto:?subject=Backup Tabaco&body=${corpo}`;
+        }
+
         function reiniciarDia() {
             if(confirm("Reiniciar os dados de hoje?")) {
                 const dataIso = new Date().toISOString().split('T')[0];
@@ -125,7 +166,7 @@
             }
         }
 
-        setInterval(atualizarInterface, 60000); // Atualiza o tempo limpo a cada minuto
+        setInterval(atualizarInterface, 60000);
         atualizarInterface();
     </script>
 </body>
