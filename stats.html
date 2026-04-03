@@ -10,18 +10,15 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; }
         
         .header { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-voltar { background: #444; color: white; padding: 10px 20px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 0.9rem; }
+        .btn-voltar { background: #444; color: white; padding: 10px 25px; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 0.9rem; }
 
-        /* Botão para a nova página de Progresso */
         .btn-progresso { 
             display: flex; align-items: center; justify-content: center; gap: 10px;
             width: 100%; max-width: 450px; background: rgba(241, 196, 15, 0.1); 
             color: var(--gold); padding: 18px; border-radius: 25px; 
             text-decoration: none; font-weight: bold; margin-bottom: 20px; 
             border: 1px solid var(--gold); box-sizing: border-box;
-            transition: 0.3s;
         }
-        .btn-progresso:active { transform: scale(0.98); background: rgba(241, 196, 15, 0.2); }
 
         .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 450px; margin-bottom: 20px; }
         .stat-card { background: var(--card); padding: 15px; border-radius: 20px; text-align: center; }
@@ -33,7 +30,6 @@
         
         .val-blue { color: var(--blue); }
         .val-danger { color: var(--danger); }
-        .val-p { color: var(--p); }
     </style>
 </head>
 <body>
@@ -67,13 +63,13 @@
     </div>
 
     <div class="chart-container">
-        <h3>Tempo Médio Sem Fumar (Horas)</h3>
-        <canvas id="chartTendencia"></canvas>
+        <h3>Gasto por Mês (€)</h3>
+        <canvas id="chartMeses"></canvas>
     </div>
 
     <div class="chart-container">
-        <h3>Histórico Últimos 7 Dias (Cigs)</h3>
-        <canvas id="chartDias"></canvas>
+        <h3>Tempo Médio Sem Fumar (h)</h3>
+        <canvas id="chartTendencia"></canvas>
     </div>
 
     <script>
@@ -90,49 +86,64 @@
             let totalCigMes = 0;
             let totalCigAno = 0;
             let diasAtivosAno = 0;
+            let mesesMap = {};
             let ultimos7Dias = [];
 
-            // Preparar dados dos últimos 7 dias
+            // Processar dias para tendência
             for(let i=6; i>=0; i--) {
                 let d = new Date();
                 d.setDate(d.getDate() - i);
                 let dataIso = d.toISOString().split('T')[0];
                 let qtd = (dados[dataIso] ? dados[dataIso].total : 0);
-                
                 let intervalo = (qtd > 1) ? (HORAS_ATIVAS / (qtd - 1)) : HORAS_ATIVAS;
-
-                ultimos7Dias.push({
-                    data: dataIso.substring(8,10),
-                    qtd: qtd,
-                    intervalo: intervalo.toFixed(1)
-                });
+                ultimos7Dias.push({ data: dataIso.substring(8,10), intervalo: intervalo.toFixed(1) });
             }
 
-            // Cálculos Globais
-            Object.keys(dados).forEach(data => {
+            // Cálculos e Mapeamento Mensal
+            Object.keys(dados).sort().forEach(data => {
                 const qtd = dados[data].total || 0;
                 const mes = data.substring(0, 7);
+                
                 if (mes === mesAtual) totalCigMes += qtd;
                 if (data.startsWith(anoAtual)) {
                     totalCigAno += qtd;
                     if(qtd > 0) diasAtivosAno++;
                 }
+
+                // Agrupar gastos por mês para o gráfico
+                mesesMap[mes] = (mesesMap[mes] || 0) + (qtd * PRECO);
             });
 
-            // Preencher Cartões
+            document.getElementById('gasto-mes').innerText = (totalCigMes * PRECO).toFixed(2) + "€";
             const minTotais = totalCigMes * MIN_POR_CIG;
             document.getElementById('tempo-fumar').innerText = `${Math.floor(minTotais/60)}h ${minTotais%60}m`;
-            document.getElementById('gasto-mes').innerText = (totalCigMes * PRECO).toFixed(2) + "€";
             
             const mediaDiaria = diasAtivosAno > 0 ? (totalCigAno / diasAtivosAno) : 0;
             document.getElementById('media-anual').innerText = mediaDiaria.toFixed(1);
             document.getElementById('projecao-ano').innerText = Math.round(mediaDiaria * 365 * PRECO) + "€";
 
-            renderizarGraficos(ultimos7Dias);
+            renderizarGraficos(mesesMap, ultimos7Dias);
         }
 
-        function renderizarGraficos(diasArray) {
-            // Gráfico de Linha (Tendência)
+        function renderizarGraficos(mesesMap, diasArray) {
+            // 1. Gráfico de Gastos Mensais
+            new Chart(document.getElementById('chartMeses'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(mesesMap),
+                    datasets: [{
+                        data: Object.values(mesesMap),
+                        backgroundColor: '#2ecc71',
+                        borderRadius: 8
+                    }]
+                },
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#333' } } }
+                }
+            });
+
+            // 2. Gráfico de Tendência (Tempo Sem Fumar)
             new Chart(document.getElementById('chartTendencia'), {
                 type: 'line',
                 data: {
@@ -142,30 +153,12 @@
                         borderColor: '#3498db',
                         backgroundColor: 'rgba(52, 152, 219, 0.1)',
                         fill: true,
-                        tension: 0.4,
-                        pointRadius: 4
+                        tension: 0.4
                     }]
                 },
                 options: { 
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } }
-                }
-            });
-
-            // Gráfico de Barras (7 Dias)
-            new Chart(document.getElementById('chartDias'), {
-                type: 'bar',
-                data: {
-                    labels: diasArray.map(d => d.data),
-                    datasets: [{
-                        data: diasArray.map(d => d.qtd),
-                        backgroundColor: '#3498db',
-                        borderRadius: 8
-                    }]
-                },
-                options: { 
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } }
+                    scales: { y: { beginAtZero: true, grid: { color: '#333' } } }
                 }
             });
         }
