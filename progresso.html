@@ -6,22 +6,30 @@
     <title>Progresso - Controlo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --p: #2ecc71; --danger: #e74c3c; --gold: #cd7f32; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --p: #2ecc71; --danger: #e74c3c; --tarde: #f1c40f; --gold: #cd7f32; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;}
+        
+        .header { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
-        .pb-container { background: #252525; width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; border: 1px solid #333; }
+
+        /* Cartão Recorde */
+        .pb-container { background: #252525; width: 100%; max-width: 450px; padding: 20px; border-radius: 25px; text-align: center; margin-bottom: 20px; border: 1px solid #333; box-sizing: border-box;}
         .pb-card { background: linear-gradient(145deg, #a8704d, #7a4a2e); padding: 30px 20px; border-radius: 25px; position: relative; margin: 0 auto 10px auto; width: 85%; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         .pb-time { font-size: 2.2rem; font-weight: 800; color: white; margin: 10px 0; }
-        .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; margin-bottom: 20px; box-sizing: border-box; }
+        
+        /* Containers de Gráficos */
+        .chart-box { background: var(--card); width: 100%; max-width: 450px; padding: 20px; border-radius: 25px; margin-bottom: 20px; box-sizing: border-box; }
         h3 { font-size: 0.8rem; color: #888; text-align: center; text-transform: uppercase; margin-bottom: 15px; }
-        .donut-container { position: relative; height: 200px; width: 100%; }
-        .donut-label { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-weight: bold; font-size: 0.75rem; color: #888; pointer-events: none; }
+        
+        /* Legenda Personalizada */
+        .custom-legend { display: flex; justify-content: center; gap: 15px; font-size: 0.75rem; color: #aaa; margin-top: -10px; margin-bottom: 15px; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <h2 style="font-size: 1.1rem; margin: 0;">O Teu Progresso</h2>
+        <h2 style="font-size: 1.1rem; margin: 0;">Análise de Hábitos</h2>
         <a href="stats.html" class="btn-voltar">Voltar</a>
     </div>
 
@@ -32,21 +40,24 @@
             <div id="pb-value" class="pb-time">0.0h</div>
             <span style="position:absolute; bottom:10px; right:15px; color:#2ecc71; font-size:1.2rem;">✔</span>
         </div>
-        <div id="pb-data" style="font-size:0.8rem; color:#888">Desde 01 Abr 2026</div>
+        <div id="pb-data" style="font-size:0.8rem; color:#888">Desde 01 Abr 2026 (Horário Ativo)</div>
     </div>
 
     <div class="chart-box">
-        <h3>Momentos Críticos (05h - 00h)</h3>
-        <div class="donut-container">
-            <canvas id="chartDonut"></canvas>
-            <div class="donut-label">FOCO<br>DIÁRIO</div>
+        <h3>Evolução por Período (Últimos 5 Dias)</h3>
+        
+        <div class="custom-legend">
+            <div><span class="dot" style="background:#2ecc71"></span>Manhã (5h-12h)</div>
+            <div><span class="dot" style="background:#f1c40f"></span>Tarde (12h-20h)</div>
+            <div><span class="dot" style="background:#e74c3c"></span>Noite (20h-00h)</div>
         </div>
-        <div id="msg-periodo" style="text-align:center; font-size:0.85rem; margin-top:15px; color:#aaa;">A analisar...</div>
+
+        <canvas id="chartPeriodos" style="max-height: 250px;"></canvas>
     </div>
 
     <div class="chart-box">
-        <h3>Cigarros por Semana</h3>
-        <canvas id="chart4Semanas"></canvas>
+        <h3>Cigarros Totais por Semana</h3>
+        <canvas id="chart4Semanas" style="max-height: 180px;"></canvas>
     </div>
 
     <script>
@@ -55,20 +66,43 @@
         const HORAS_ATIVAS = 19; 
 
         function inicializar() {
-            let manha = 0, tarde = 0, noite = 0, maxInt = 0, dataRec = "--/--";
+            let maxInt = 0, dataRec = "--/--";
             let semanas = [0, 0, 0, 0];
+            
+            // Dados para o novo gráfico (últimos 5 dias)
+            let labelsDias = [];
+            let dadosManha = [], dadosTarde = [], dadosNoite = [];
 
+            // 1. Preparar os últimos 5 dias ativos (limitados a Abril)
+            for(let i=4; i>=0; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let dataIso = d.toISOString().split('T')[0];
+                
+                // Só processa se for Abril ou depois
+                if(dataIso >= DATA_CORTA) {
+                    labelsDias.push(dataIso.substring(8,10)); // Apenas o dia "01", "02", etc.
+                    
+                    const diaDados = dados[dataIso];
+                    let m=0, t=0, n=0;
+                    
+                    if(diaDados && diaDados.horas) {
+                        diaDados.horas.forEach(h => {
+                            const hr = parseInt(h.split(':')[0]);
+                            // Aplicando filtro de horário solicitado (ignora 00h-05h)
+                            if(hr >= 5 && hr < 12) m++;
+                            else if(hr >= 12 && hr < 20) t++;
+                            else if(hr >= 20) n++;
+                        });
+                    }
+                    dadosManha.push(m); dadosTarde.push(t); dadosNoite.push(n);
+                }
+            }
+
+            // 2. Processar Recorde e Semanas (lógica existente mantida)
             Object.keys(dados).forEach(data => {
                 if(data >= DATA_CORTA) {
                     const dia = dados[data];
-                    if(dia.horas) {
-                        dia.horas.forEach(h => {
-                            const hr = parseInt(h.split(':')[0]);
-                            if(hr >= 5 && hr < 12) manha++;
-                            else if(hr >= 12 && hr < 20) tarde++;
-                            else if(hr >= 20) noite++;
-                        });
-                    }
                     let totalValido = dia.horas ? dia.horas.filter(h => parseInt(h.split(':')[0]) >= 5).length : dia.total;
                     let int = totalValido > 1 ? (HORAS_ATIVAS / (totalValido - 1)) : HORAS_ATIVAS;
                     if(int >= maxInt) { maxInt = int; dataRec = data.split('-').reverse().join('/'); }
@@ -81,17 +115,50 @@
                 }
             });
 
+            // Exibir Recorde
             document.getElementById('pb-value').innerText = maxInt.toFixed(1) + "h";
             document.getElementById('pb-data').innerHTML = "Data do recorde:<br><strong>" + dataRec + "</strong>";
             
-            new Chart(document.getElementById('chartDonut'), { type: 'doughnut', data: { labels: ['Manhã', 'Tarde', 'Noite'], datasets: [{ data: [manha, tarde, noite], backgroundColor: ['#2ecc71', '#f1c40f', '#e74c3c'], borderWidth: 0 }] }, options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#888', font: { size: 10 } } } } } });
-            new Chart(document.getElementById('chart4Semanas'), { type: 'bar', data: { labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'], datasets: [{ data: semanas, backgroundColor: (c) => c.dataIndex === 3 ? '#3498db' : '#555', borderRadius: 6 }] }, options: { plugins: { legend: { display: false } } } });
+            // 3. Renderizar Novo Gráfico Agrupado (Estilo da imagem)
+            renderizarBarrasAgrupadas(labelsDias, dadosManha, dadosTarde, dadosNoite);
             
-            const msg = document.getElementById('msg-periodo');
-            if(noite >= manha && noite >= tarde && noite > 0) msg.innerText = "Foco necessário à noite 🌙";
-            else if(tarde >= manha && tarde >= noite && tarde > 0) msg.innerText = "Foco necessário à tarde 🍴";
-            else if(manha > 0) msg.innerText = "Atenção ao café da manhã ☕";
+            // 4. Renderizar Gráfico Semanal
+            new Chart(document.getElementById('chart4Semanas'), { type: 'bar', data: { labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'], datasets: [{ data: semanas, backgroundColor: (c) => c.dataIndex === 3 ? '#3498db' : '#555', borderRadius: 6 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } } } } });
         }
+
+        function renderizarBarrasAgrupadas(labels, manha, tarde, noite) {
+            new Chart(document.getElementById('chartPeriodos'), {
+                type: 'bar',
+                data: {
+                    labels: labels, // Dias 1, 2, 3, 4, 5
+                    datasets: [
+                        { label: 'Manhã', data: manha, backgroundColor: '#2ecc71', borderRadius: 4, barPercentage: 0.8, categoryPercentage: 0.8 },
+                        { label: 'Tarde', data: tarde, backgroundColor: '#f1c40f', borderRadius: 4, barPercentage: 0.8, categoryPercentage: 0.8 },
+                        { label: 'Noite', data: noite, backgroundColor: '#e74c3c', borderRadius: 4, barPercentage: 0.8, categoryPercentage: 0.8 }
+                    ]
+                },
+                options: {
+                    plugins: { 
+                        legend: { display: false }, // Ocultamos a legenda padrão para usar a personalizada
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'VEZES', color: '#888', font: { size: 10 } },
+                            grid: { color: '#333' },
+                            ticks: { color: '#888' }
+                        }, 
+                        x: { 
+                            title: { display: true, text: 'DIA', color: '#888', font: { size: 10 } },
+                            grid: { display: false },
+                            ticks: { color: '#eee' }
+                        } 
+                    }
+                }
+            });
+        }
+
         inicializar();
     </script>
 </body>
