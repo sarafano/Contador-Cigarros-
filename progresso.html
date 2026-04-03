@@ -6,13 +6,12 @@
     <title>Progresso - Controlo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --p: #2ecc71; --danger: #e74c3c; --gold: #cd7f32; } /* Cor Bronze/Cobre */
+        :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --p: #2ecc71; --danger: #e74c3c; --gold: #cd7f32; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
         .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
 
-        /* ESTILO DO CARTÃO DA IMAGEM */
         .pb-container { 
             background: #252525; 
             width: 100%; max-width: 400px; 
@@ -23,7 +22,7 @@
         .pb-title { font-size: 0.8rem; color: #888; text-transform: uppercase; font-weight: bold; margin-bottom: 15px; display: block; }
         
         .pb-card { 
-            background: linear-gradient(145deg, #a8704d, #7a4a2e); /* Gradiente Bronze */
+            background: linear-gradient(145deg, #a8704d, #7a4a2e);
             padding: 30px 20px; border-radius: 25px; 
             position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             margin: 0 auto 15px auto; width: 85%;
@@ -31,7 +30,7 @@
         .pb-icon { font-size: 2.5rem; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); }
         .pb-label { font-size: 0.75rem; color: rgba(255,255,255,0.8); text-transform: uppercase; font-weight: bold; }
         .pb-time { font-size: 2.2rem; font-weight: 800; color: white; margin: 10px 0; text-shadow: 1px 1px 4px rgba(0,0,0,0.3); }
-        .pb-check { position: absolute; bottom: 10px; right: 15px; color: #2ecc71; font-size: 1.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
+        .pb-check { position: absolute; bottom: 10px; right: 15px; color: #2ecc71; font-size: 1.5rem; }
         
         .pb-date { font-size: 0.85rem; color: #aaa; margin-top: 10px; }
 
@@ -48,7 +47,7 @@
     </div>
 
     <div class="pb-container">
-        <span class="pb-title">Recorde Pessoal (PB)</span>
+        <span class="pb-title">Recorde Pessoal (Desde Abr/2026)</span>
         <div class="pb-card">
             <span class="pb-icon">⏱️</span>
             <div class="pb-label">Maior Tempo Limpo</div>
@@ -59,7 +58,7 @@
     </div>
 
     <div class="chart-box">
-        <h3>Cigarros por Semana</h3>
+        <h3>Cigarros por Semana (Abril)</h3>
         <canvas id="chart4Semanas" style="max-height: 220px;"></canvas>
         <div id="msg-evolucao" class="info-box">A analisar tendências...</div>
     </div>
@@ -67,37 +66,42 @@
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
         const HORAS_ATIVAS = 16;
+        const DATA_LIMITE = "2026-04-01"; // Filtro solicitado
 
         function calcular() {
             let totaisSemanas = [0, 0, 0, 0];
             let maxIntervalo = 0;
             let dataRecorde = "---";
 
-            // Processar para o Recorde Histórico
+            // 1. Processar Recorde apenas de Abril para a frente
             Object.keys(dados).forEach(data => {
-                let qtd = dados[data].total || 0;
-                let intervaloDia = qtd > 1 ? (HORAS_ATIVAS / (qtd - 1)) : HORAS_ATIVAS;
-                
-                if (intervaloDia >= maxIntervalo) {
-                    maxIntervalo = intervaloDia;
-                    dataRecorde = data.split('-').reverse().join('/');
+                if (data >= DATA_LIMITE) {
+                    let qtd = dados[data].total || 0;
+                    let intervaloDia = qtd > 1 ? (HORAS_ATIVAS / (qtd - 1)) : HORAS_ATIVAS;
+                    
+                    if (intervaloDia >= maxIntervalo) {
+                        maxIntervalo = intervaloDia;
+                        dataRecorde = data.split('-').reverse().join('/');
+                    }
                 }
             });
 
-            // Processar 4 semanas para o gráfico
+            // 2. Processar Gráfico das 4 semanas (limitando a Abril)
             for(let i=0; i<28; i++) {
                 let d = new Date();
                 d.setDate(d.getDate() - i);
                 let dataIso = d.toISOString().split('T')[0];
-                let qtd = (dados[dataIso] ? dados[dataIso].total : 0);
                 
-                if (i < 7) totaisSemanas[3] += qtd;
-                else if (i < 14) totaisSemanas[2] += qtd;
-                else if (i < 21) totaisSemanas[1] += qtd;
-                else if (i < 28) totaisSemanas[0] += qtd;
+                // Só conta se a data for igual ou superior a 1 de Abril
+                if (dataIso >= DATA_LIMITE) {
+                    let qtd = (dados[dataIso] ? dados[dataIso].total : 0);
+                    if (i < 7) totaisSemanas[3] += qtd;
+                    else if (i < 14) totaisSemanas[2] += qtd;
+                    else if (i < 21) totaisSemanas[1] += qtd;
+                    else if (i < 28) totaisSemanas[0] += qtd;
+                }
             }
 
-            // Exibir Recorde
             document.getElementById('pb-value').innerText = maxIntervalo.toFixed(1) + "h";
             document.getElementById('pb-data').innerText = dataRecorde;
 
@@ -126,9 +130,9 @@
 
             const msg = document.getElementById('msg-evolucao');
             const diff = semanas[2] > 0 ? ((semanas[3] - semanas[2]) / semanas[2]) * 100 : 0;
-            if(diff < 0) msg.innerHTML = `<span style="color:#2ecc71">📉 Menos ${Math.abs(diff).toFixed(0)}% que a semana passada!</span>`;
-            else if(diff > 0) msg.innerHTML = `<span style="color:#e74c3c">⚠️ Subiu ${diff.toFixed(0)}%. Foca no recorde!</span>`;
-            else msg.innerText = "📈 Mantiveste o ritmo.";
+            if(diff < 0) msg.innerHTML = `<span style="color:#2ecc71">📉 Menos ${Math.abs(diff).toFixed(0)}% que a semana anterior!</span>`;
+            else if(diff > 0) msg.innerHTML = `<span style="color:#e74c3c">⚠️ Subiu ${diff.toFixed(0)}% em relação à anterior.</span>`;
+            else msg.innerText = "📈 Mantiveste o ritmo estável.";
         }
 
         calcular();
