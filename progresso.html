@@ -15,20 +15,18 @@
         .pb-time { font-size: 2.2rem; font-weight: 800; color: white; margin: 10px 0; }
         .chart-box { background: var(--card); width: 100%; max-width: 450px; padding: 20px; border-radius: 25px; margin-bottom: 20px; box-sizing: border-box; }
         h3 { font-size: 0.8rem; color: #888; text-align: center; text-transform: uppercase; margin-bottom: 15px; }
-        .custom-legend { display: flex; justify-content: center; gap: 10px; font-size: 0.7rem; color: #aaa; margin-bottom: 15px; flex-wrap: wrap; }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2 style="font-size: 1.1rem; margin: 0;">Análise de Progresso</h2>
+        <h2 style="font-size: 1.1rem; margin: 0;">O Teu Progresso</h2>
         <a href="index.html" class="btn-voltar">Voltar</a>
     </div>
 
     <div class="pb-container">
         <div class="pb-card">
             <span style="font-size:2rem; position:absolute; top:-15px; left:46%;">🏆</span>
-            <div style="font-size:0.7rem; font-weight:bold; color:rgba(255,255,255,0.8)">MAIOR TEMPO LIMPO</div>
+            <div style="font-size:0.7rem; font-weight:bold; color:rgba(255,255,255,0.8)">MÉDIA DE TEMPO SEM FUMAR</div>
             <div id="pb-value" class="pb-time">0h</div>
             <span style="position:absolute; bottom:10px; right:15px; color:#2ecc71; font-size:1.2rem;">✔</span>
         </div>
@@ -36,105 +34,83 @@
     </div>
 
     <div class="chart-box">
-        <h3>Evolução por Período</h3>
-        <div class="custom-legend">
-            <div><span class="dot" style="background:#2ecc71"></span>Manhã</div>
-            <div><span class="dot" style="background:#f1c40f"></span>Tarde</div>
-            <div><span class="dot" style="background:#e74c3c"></span>Noite</div>
-        </div>
-        <canvas id="chartPeriodos" style="max-height: 220px;"></canvas>
-    </div>
-
-    <div class="chart-box">
-        <h3>Cigarros Totais por Semana</h3>
-        <canvas id="chart4Semanas" style="max-height: 180px;"></canvas>
+        <h3>SEMANA PASSADA VS ESTA SEMANA</h3>
+        <canvas id="chartComparativo" style="max-height: 200px;"></canvas>
     </div>
 
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        const DATA_LIMITE = "2026-04-01";
+        const DATA_INICIO = "2026-04-01";
 
         function inicializar() {
-            let maxHorasLimpo = 0;
-            let dataRecorde = "";
-            let semanas = [0, 0, 0, 0];
-            let diasLabels = [], mData = [], tData = [], nData = [];
+            let totalIntervalosHoras = 0;
+            let contagemIntervalos = 0;
+            let semanaPassada = 0;
+            let estaSemana = 0;
 
-            // Filtrar e ordenar apenas datas de Abril em diante
-            const todasDatas = Object.keys(dados)
-                .filter(d => d >= DATA_LIMITE)
-                .sort();
-            
-            // 1. Processar Recorde e Semanas
-            todasDatas.forEach((dataStr, index) => {
-                const dia = dados[dataStr];
-                const totalCigs = dia.total || 0;
-                
-                // Contagem Semanal (Mantém histórico para o gráfico de barras azul)
-                const diffDias = Math.floor((new Date() - new Date(dataStr)) / (1000 * 60 * 60 * 24));
-                if(diffDias < 7) semanas[3] += totalCigs;
-                else if(diffDias < 14) semanas[2] += totalCigs;
-                else if(diffDias < 21) semanas[1] += totalCigs;
-                else if(diffDias < 28) semanas[0] += totalCigs;
+            const hoje = new Date();
+            const todasDatas = Object.keys(dados).sort();
 
-                // Cálculo de Recorde entre registos (Apenas de Abril)
-                if (index > 0) {
-                    const dataAtual = new Date(dataStr);
-                    const dataAnterior = new Date(todasDatas[index-1]);
-                    const diffHoras = Math.floor((dataAtual - dataAnterior) / (1000 * 60 * 60));
-                    if (diffHoras > maxHorasLimpo) {
-                        maxHorasLimpo = diffHoras;
-                        dataRecorde = dataStr;
+            // 1. Cálculo da Média Sem Fumar (Desde Dia 1)
+            let todosMomentos = [];
+            todasDatas.forEach(dataStr => {
+                if (dataStr >= DATA_INICIO && dados[dataStr].horas) {
+                    dados[dataStr].horas.forEach(hora => {
+                        const [h, m] = hora.split(':');
+                        let dataHora = new Date(dataStr);
+                        dataHora.setHours(h, m, 0);
+                        todosMomentos.push(dataHora);
+                    });
+                }
+            });
+
+            // Ordenar todos os registos por tempo
+            todosMomentos.sort((a, b) => a - b);
+
+            for (let i = 1; i < todosMomentos.length; i++) {
+                const diffMs = todosMomentos[i] - todosMomentos[i-1];
+                totalIntervalosHoras += (diffMs / (1000 * 60 * 60));
+                contagemIntervalos++;
+            }
+
+            const mediaFinal = contagemIntervalos > 0 ? (totalIntervalosHoras / contagemIntervalos).toFixed(1) : "0";
+            document.getElementById('pb-value').innerText = mediaFinal + "h";
+
+            // 2. Cálculo das Semanas (Passada vs Esta)
+            todasDatas.forEach(dataStr => {
+                const dataObj = new Date(dataStr);
+                const diffDias = Math.floor((hoje - dataObj) / (1000 * 60 * 60 * 24));
+                const total = dados[dataStr].total || 0;
+
+                if (diffDias >= 0 && diffDias < 7) {
+                    estaSemana += total;
+                } else if (diffDias >= 7 && diffDias < 14) {
+                    semanaPassada += total;
+                }
+            });
+
+            // 3. Gráfico Comparativo de Semanas
+            new Chart(document.getElementById('chartComparativo'), {
+                type: 'bar',
+                data: {
+                    labels: ['PASSADA', 'ESTA'],
+                    datasets: [{
+                        data: [semanaPassada, estaSemana],
+                        backgroundColor: ['#e74c3c', '#3498db'],
+                        borderRadius: 10,
+                        barThickness: 60
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#888' } },
+                        x: { grid: { display: false }, ticks: { color: '#fff', font: { weight: 'bold' } } }
                     }
                 }
             });
-
-            // 2. Preparar Gráfico de Períodos (Últimos 5 dias)
-            for(let i=4; i>=0; i--) {
-                let d = new Date();
-                d.setDate(d.getDate() - i);
-                let iso = d.toISOString().split('T')[0];
-                diasLabels.push(iso.substring(8,10) + "/" + iso.substring(5,7));
-
-                let m=0, t=0, n=0;
-                if(iso >= DATA_LIMITE && dados[iso] && dados[iso].horas) {
-                    dados[iso].horas.forEach(h => {
-                        let hr = parseInt(h.split(':')[0]);
-                        if(hr >= 5 && hr < 12) m++;
-                        else if(hr >= 12 && hr < 20) t++;
-                        else if(hr >= 20) n++;
-                    });
-                }
-                mData.push(m); tData.push(t); nData.push(n);
-            }
-
-            // Atualizar UI
-            document.getElementById('pb-value').innerText = maxHorasLimpo + "h";
-            document.getElementById('pb-data').innerText = "Recorde desde 1 de Abril: " + (dataRecorde.split('-').reverse().join('/') || "---");
-
-            // Renderizar Gráficos
-            new Chart(document.getElementById('chartPeriodos'), {
-                type: 'bar',
-                data: {
-                    labels: diasLabels,
-                    datasets: [
-                        { label: 'Manhã', data: mData, backgroundColor: '#2ecc71', borderRadius: 4 },
-                        { label: 'Tarde', data: tData, backgroundColor: '#f1c40f', borderRadius: 4 },
-                        { label: 'Noite', data: nData, backgroundColor: '#e74c3c', borderRadius: 4 }
-                    ]
-                },
-                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } } }
-            });
-
-            new Chart(document.getElementById('chart4Semanas'), {
-                type: 'bar',
-                data: {
-                    labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
-                    datasets: [{ data: semanas, backgroundColor: (c) => c.dataIndex === 3 ? '#3498db' : '#555', borderRadius: 6 }]
-                },
-                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } } } }
-            });
         }
+
         inicializar();
     </script>
 </body>
