@@ -3,50 +3,60 @@
 <head>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #1a1a1a; color: white; font-family: -apple-system, sans-serif; padding: 15px; margin: 0; overflow: hidden; }
-        .container { background: #2d2d2d; border-radius: 25px; padding: 20px; height: 260px; box-sizing: border-box; }
-        h3 { font-size: 0.8rem; color: #888; text-align: center; text-transform: uppercase; margin: 0 0 15px 0; letter-spacing: 1px; }
+        body { background: #1a1a1a; color: white; font-family: sans-serif; padding: 10px; margin: 0; overflow: hidden; }
+        .container { background: #2d2d2d; border-radius: 25px; padding: 15px; height: 260px; box-sizing: border-box; }
+        h3 { font-size: 0.75rem; color: #888; text-align: center; text-transform: uppercase; margin: 0 0 10px 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h3>Cigarros Totais por Semana</h3>
+        <h3>CIGARROS TOTAIS (ÚLTIMAS 4 SEMANAS)</h3>
         <canvas id="chart"></canvas>
     </div>
 
     <script>
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
-        const hoje = new Date();
         
-        // Criar 4 baldes para as semanas (0=esta, 1=passada, 2=ante-passada, 3=há 3 semanas)
+        // Função para obter o início da semana (Segunda-feira)
+        function getSegunda(d) {
+            d = new Date(d);
+            const day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1);
+            return new Date(d.setDate(diff)).setHours(0,0,0,0);
+        }
+
+        const hoje = new Date();
+        const segundaEstaSemana = getSegunda(hoje);
+        
+        // Criar os 4 baldes (0 = esta semana, 1 = passada, 2 = há duas, 3 = há três)
         let contagemSemanas = [0, 0, 0, 0];
 
         Object.keys(dados).forEach(dataStr => {
-            const dataObj = new Date(dataStr);
-            // Calcular diferença de dias
-            const diffDias = Math.floor((hoje - dataObj) / (1000 * 60 * 60 * 24));
-            const total = dados[dataStr].total || 0;
+            const dataPonto = new Date(dataStr).setHours(0,0,0,0);
+            const totalCigs = dados[dataStr].total || 0;
+            
+            // Calcular a quantos milissegundos de distância está da segunda-feira atual
+            const diffMs = segundaEstaSemana - dataPonto;
+            const diffSemanas = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
 
-            if (diffDias >= 0 && diffDias < 7) contagemSemanas[0] += total;
-            else if (diffDias >= 7 && diffDias < 14) contagemSemanas[1] += total;
-            else if (diffDias >= 14 && diffDias < 21) contagemSemanas[2] += total;
-            else if (diffDias >= 21 && diffDias < 28) contagemSemanas[3] += total;
+            if (diffSemanas === 0) contagemSemanas[0] += totalCigs; // Esta semana
+            else if (diffSemanas === 1) contagemSemanas[1] += totalCigs; // Passada
+            else if (diffSemanas === 2) contagemSemanas[2] += totalCigs; // Há 2
+            else if (diffSemanas === 3) contagemSemanas[3] += totalCigs; // Há 3
         });
 
-        // Inverter para mostrar da mais antiga para a mais atual (esquerda para a direita)
-        const dataGrafico = [contagemSemanas[3], contagemSemanas[2], contagemSemanas[1], contagemSemanas[0]];
+        // Inverter para mostrar da antiga para a nova (3, 2, 1, 0)
+        const labels = ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'];
+        const valores = [contagemSemanas[3], contagemSemanas[2], contagemSemanas[1], contagemSemanas[0]];
 
         new Chart(document.getElementById('chart'), {
             type: 'bar',
             data: {
-                labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
+                labels: labels,
                 datasets: [{
-                    data: dataGrafico,
-                    backgroundColor: (context) => {
-                        return context.dataIndex === 3 ? '#3498db' : '#555'; // Azul para a atual, cinza para as outras
-                    },
+                    data: valores,
+                    backgroundColor: (ctx) => ctx.dataIndex === 3 ? '#3498db' : '#555',
                     borderRadius: 8,
-                    barThickness: 35
+                    barThickness: 30
                 }]
             },
             options: {
@@ -57,7 +67,7 @@
                     y: { 
                         beginAtZero: true, 
                         grid: { color: '#3d3d3d' },
-                        ticks: { color: '#888', font: { size: 10 } }
+                        ticks: { color: '#888', stepSize: 5 } 
                     },
                     x: { 
                         grid: { display: false },
