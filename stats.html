@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise Completa - Controlo de Tabaco</title>
+    <title>Análise - Controlo de Tabaco</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --danger: #e74c3c; --p: #2ecc71; }
@@ -18,7 +18,7 @@
         .stat-value { font-size: 1.2rem; font-weight: bold; }
         
         .chart-container { background: var(--card); padding: 20px; border-radius: 25px; width: 100%; max-width: 450px; margin-bottom: 20px; box-sizing: border-box; }
-        h3 { font-size: 0.9rem; color: #888; margin-top: 0; text-transform: uppercase; }
+        h3 { font-size: 0.9rem; color: #888; margin-top: 0; text-transform: uppercase; text-align: center; }
         
         .val-blue { color: var(--blue); }
         .val-danger { color: var(--danger); }
@@ -51,6 +51,11 @@
     </div>
 
     <div class="chart-container">
+        <h3>Tempo Médio Sem Fumar (Horas)</h3>
+        <canvas id="chartTendencia"></canvas>
+    </div>
+
+    <div class="chart-container">
         <h3>Gasto por Mês (€)</h3>
         <canvas id="chartMeses"></canvas>
     </div>
@@ -63,6 +68,7 @@
     <script>
         const PRECO = 0.25;
         const MIN_POR_CIG = 3;
+        const HORAS_ATIVAS = 16; // Tempo médio acordado por dia
         const dados = JSON.parse(localStorage.getItem('dadosCigarros')) || {};
 
         function inicializar() {
@@ -73,59 +79,74 @@
             let totalCigMes = 0;
             let totalCigAno = 0;
             let diasAtivosAno = 0;
-            
-            // Agrupamento para os gráficos
             let mesesMap = {};
             let ultimos7Dias = [];
 
-            // Preparar últimos 7 dias
             for(let i=6; i>=0; i--) {
                 let d = new Date();
                 d.setDate(d.getDate() - i);
                 let dataIso = d.toISOString().split('T')[0];
+                let qtd = (dados[dataIso] ? dados[dataIso].total : 0);
+                
+                // Cálculo do intervalo: 16h / (qtd de cigarros + 1)
+                let intervalo = qtd > 0 ? (HORAS_ATIVAS / (qtd + 1)) : HORAS_ATIVAS;
+
                 ultimos7Dias.push({
-                    data: dataIso,
-                    qtd: (dados[dataIso] ? dados[dataIso].total : 0)
+                    data: dataIso.substring(8,10),
+                    qtd: qtd,
+                    intervalo: intervalo.toFixed(1)
                 });
             }
 
-            // Processar todos os dados
             Object.keys(dados).sort().forEach(data => {
                 const qtd = dados[data].total || 0;
                 const mes = data.substring(0, 7);
-                
-                // Soma mensal/anual para os cards
                 if (mes === mesAtual) totalCigMes += qtd;
                 if (data.startsWith(anoAtual)) {
                     totalCigAno += qtd;
                     if(qtd > 0) diasAtivosAno++;
                 }
-
-                // Soma para gráfico mensal
                 mesesMap[mes] = (mesesMap[mes] || 0) + (qtd * PRECO);
             });
 
-            // Preencher os cards
             const minTotais = totalCigMes * MIN_POR_CIG;
             document.getElementById('tempo-fumar').innerText = `${Math.floor(minTotais/60)}h ${minTotais%60}m`;
             document.getElementById('gasto-mes').innerText = (totalCigMes * PRECO).toFixed(2) + "€";
-            
             const mediaDiaria = diasAtivosAno > 0 ? (totalCigAno / diasAtivosAno) : 0;
             document.getElementById('media-anual').innerText = mediaDiaria.toFixed(1);
             document.getElementById('projecao-ano').innerText = Math.round(mediaDiaria * 365 * PRECO) + "€";
 
-            // GERAR GRÁFICOS
             renderizarGraficos(mesesMap, ultimos7Dias);
         }
 
         function renderizarGraficos(mesesMap, diasArray) {
-            // Gráfico Mensal
+            // 1. Gráfico de Tendência (Tempo Sem Fumar)
+            new Chart(document.getElementById('chartTendencia'), {
+                type: 'line',
+                data: {
+                    labels: diasArray.map(d => d.data),
+                    datasets: [{
+                        label: 'Horas',
+                        data: diasArray.map(d => d.intervalo),
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5
+                    }]
+                },
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#444' } } }
+                }
+            });
+
+            // 2. Gráfico Mensal
             new Chart(document.getElementById('chartMeses'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(mesesMap),
                     datasets: [{
-                        label: 'Euros',
                         data: Object.values(mesesMap),
                         backgroundColor: '#2ecc71',
                         borderRadius: 8
@@ -134,13 +155,12 @@
                 options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#444' } } } }
             });
 
-            // Gráfico 7 Dias
+            // 3. Gráfico 7 Dias
             new Chart(document.getElementById('chartDias'), {
                 type: 'bar',
                 data: {
-                    labels: diasArray.map(d => d.data.substring(8,10)),
+                    labels: diasArray.map(d => d.data),
                     datasets: [{
-                        label: 'Cigarros',
                         data: diasArray.map(d => d.qtd),
                         backgroundColor: '#3498db',
                         borderRadius: 8
