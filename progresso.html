@@ -12,14 +12,14 @@
         .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-voltar { background: #444; color: white; padding: 8px 20px; border-radius: 12px; text-decoration: none; font-size: 0.9rem; }
 
-        .record-card { background: linear-gradient(135deg, #3a3a3a, #2d2d2d); width: 100%; max-width: 400px; padding: 25px; border-radius: 30px; text-align: center; margin-bottom: 20px; border: 1px solid #444; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .record-card { background: linear-gradient(135deg, #3a3a3a, #2d2d2d); width: 100%; max-width: 400px; padding: 25px; border-radius: 30px; text-align: center; margin-bottom: 20px; border: 1px solid #444; }
         .record-value { font-size: 2.2rem; font-weight: 800; color: var(--gold); margin: 5px 0; }
         .record-label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
 
         .chart-box { background: var(--card); width: 100%; max-width: 400px; padding: 20px; border-radius: 25px; margin-bottom: 20px; box-sizing: border-box; }
-        h3 { font-size: 0.9rem; margin-top: 0; color: #888; text-align: center; text-transform: uppercase; margin-bottom: 20px; }
+        h3 { font-size: 0.8rem; margin-top: 0; color: #888; text-align: center; text-transform: uppercase; margin-bottom: 20px; }
         
-        .info-box { text-align: center; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.05); margin-top: 15px; font-weight: bold; font-size: 0.95rem; }
+        .info-box { text-align: center; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.05); margin-top: 15px; font-weight: bold; font-size: 0.9rem; }
         .trend-down { color: var(--p); }
         .trend-up { color: var(--danger); }
     </style>
@@ -35,13 +35,13 @@
         <span style="font-size: 2rem;">🏆</span><br>
         <span class="record-label">Maior Tempo Sem Fumar</span>
         <div id="pb-value" class="record-value">0h 0m</div>
-        <small style="color: #666;" id="data-recorde">Recorde histórico</small>
+        <small style="color: #666;">Recorde histórico (base 16h)</small>
     </div>
 
     <div class="chart-box">
-        <h3>Semana Passada vs Esta Semana</h3>
-        <canvas id="chartComp" style="max-height: 250px;"></canvas>
-        <div id="msg-comp" class="info-box">A calcular evolução...</div>
+        <h3>Cigarros por Semana (Último Mês)</h3>
+        <canvas id="chart4Semanas" style="max-height: 250px;"></canvas>
+        <div id="msg-evolucao" class="info-box">A analisar tendências...</div>
     </div>
 
     <script>
@@ -49,73 +49,70 @@
         const HORAS_ATIVAS = 16;
 
         function calcular() {
-            let estaSemana = 0;
-            let semanaPassada = 0;
+            let totaisSemanas = [0, 0, 0, 0]; // [3 semanas atrás, 2 atrás, passada, esta]
             let maxIntervalo = 0;
 
-            // Datas para o cálculo das duas semanas
-            for(let i=0; i<14; i++) {
+            // Processar últimos 28 dias (4 semanas)
+            for(let i=0; i<28; i++) {
                 let d = new Date();
                 d.setDate(d.getDate() - i);
                 let dataIso = d.toISOString().split('T')[0];
                 let qtd = (dados[dataIso] ? dados[dataIso].total : 0);
                 
-                if (i < 7) {
-                    estaSemana += qtd;
-                } else {
-                    semanaPassada += qtd;
-                }
+                // Atribuir à semana correspondente
+                if (i < 7) totaisSemanas[3] += qtd;      // Esta semana
+                else if (i < 14) totaisSemanas[2] += qtd; // Semana passada
+                else if (i < 21) totaisSemanas[1] += qtd; // 2 semanas atrás
+                else if (i < 28) totaisSemanas[0] += qtd; // 3 semanas atrás
 
-                // Cálculo do melhor intervalo do histórico (Recorde)
+                // Recorde (baseado em qualquer dia do histórico)
                 let intervaloDia = qtd > 1 ? (HORAS_ATIVAS / (qtd - 1)) : HORAS_ATIVAS;
                 if (intervaloDia > maxIntervalo) maxIntervalo = intervaloDia;
             }
 
             document.getElementById('pb-value').innerText = maxIntervalo.toFixed(1) + "h";
-            renderizar(estaSemana, semanaPassada);
+            renderizar(totaisSemanas);
         }
 
-        function renderizar(atual, passada) {
-            new Chart(document.getElementById('chartComp'), {
+        function renderizar(semanas) {
+            new Chart(document.getElementById('chart4Semanas'), {
                 type: 'bar',
                 data: {
-                    labels: ['PASSADA', 'ESTA'],
+                    labels: ['3 Sem.', '2 Sem.', 'Passada', 'ESTA'],
                     datasets: [{
-                        label: 'Cigarros',
-                        data: [passada, atual],
-                        backgroundColor: ['#e74c3c', '#3498db'], // Vermelho vs Azul como na imagem
-                        borderRadius: 10,
-                        barThickness: 50
+                        data: semanas,
+                        backgroundColor: (context) => {
+                            const index = context.dataIndex;
+                            return index === 3 ? '#3498db' : '#555'; // Azul para a atual, cinza para as outras
+                        },
+                        borderRadius: 8
                     }]
                 },
                 options: {
                     plugins: { legend: { display: false } },
                     scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { color: '#333' },
-                            ticks: { color: '#888' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#eee', font: { weight: 'bold' } }
-                        }
+                        y: { beginAtZero: true, grid: { color: '#333' } },
+                        x: { grid: { display: false }, ticks: { color: '#eee' } }
                     }
                 }
             });
 
-            const msg = document.getElementById('msg-comp');
-            if(passada > 0) {
+            // Lógica de mensagem: comparar esta semana com a anterior
+            const msg = document.getElementById('msg-evolucao');
+            const atual = semanas[3];
+            const passada = semanas[2];
+
+            if (passada > 0) {
                 const diff = ((atual - passada) / passada) * 100;
-                if(diff < 0) {
-                    msg.innerHTML = `<span class="trend-down">📈 Menos ${Math.abs(diff).toFixed(0)}% que a semana passada</span>`;
-                } else if(diff > 0) {
-                    msg.innerHTML = `<span class="trend-up">⚠️ Subiu ${diff.toFixed(0)}% esta semana</span>`;
+                if (diff < 0) {
+                    msg.innerHTML = `<span class="trend-down">📉 Menos ${Math.abs(diff).toFixed(0)}% que a semana anterior!</span>`;
+                } else if (diff > 0) {
+                    msg.innerHTML = `<span class="trend-up">⚠️ Subiu ${diff.toFixed(0)}%. Mantém o foco!</span>`;
                 } else {
-                    msg.innerText = "📈 Mantiveste o mesmo ritmo!";
+                    msg.innerText = "📈 Mantiveste o ritmo da semana passada.";
                 }
             } else {
-                msg.innerText = "A recolher dados...";
+                msg.innerText = "A comparar com semanas anteriores...";
             }
         }
 
