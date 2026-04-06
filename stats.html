@@ -85,7 +85,7 @@
             Object.keys(dados).forEach(data => {
                 const totalDia = dados[data].total || 0;
                 totalCigarrosAno += totalDia;
-                minutosFumarTotal += (totalDia * 10); // Estimativa: 10 min por cigarro
+                minutosFumarTotal += (totalDia * 3); // Estimativa: 10 min por cigarro
 
                 if (data.startsWith(mesAtual)) {
                     gastoMes += totalDia * PRECO_CIGARRO;
