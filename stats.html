@@ -96,10 +96,21 @@
             document.getElementById('v-gastoMes').innerText = gastoMes.toFixed(2) + "€";
 
             // 2. TEMPO A FUMAR (Convertendo minutos em h e m)
-            const h = Math.floor(minutosFumarTotal / 60);
-            const m = minutosFumarTotal % 60;
-            document.getElementById('v-tempoFumar').innerText = `${h}h ${m}m`;
+            // 2. TEMPO A FUMAR (Calculado apenas para o mês atual - 3 min por cigarro)
+let cigarrosMesAtual = 0;
+const mesHoje = new Date().toISOString().substring(0, 7);
 
+Object.keys(dados).forEach(data => {
+    if (data.startsWith(mesHoje)) {
+        cigarrosMesAtual += (dados[data].total || 0);
+    }
+});
+
+const totalMinutos = cigarrosMesAtual * 3;
+const h = Math.floor(totalMinutos / 60);
+const m = totalMinutos % 60;
+
+document.getElementById('v-tempoFumar').innerText = `${h}h ${m}m`;
             // 3. MÉDIA DIA (ANO)
             const mediaAno = (totalCigarrosAno / diasComDados).toFixed(1);
             document.getElementById('v-mediaAno').innerText = mediaAno;
