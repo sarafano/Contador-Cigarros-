@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estatísticas Detalhadas</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         :root { --bg: #1a1a1a; --card: #2d2d2d; --txt: #eee; --blue: #3498db; --green: #2ecc71; --red: #e74c3c; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
@@ -132,8 +133,28 @@ document.getElementById('v-tempoFumar').innerText = `${h}h ${m}m`;
             new Chart(document.getElementById('chartGastoMensal'), {
                 type: 'bar',
                 data: { labels: Object.keys(meses), datasets: [{ data: Object.values(meses), backgroundColor: '#2ecc71', borderRadius: 8 }] },
-                options: { plugins: { legend: { display: false } } }
-            });
+                    options: {
+        plugins: {
+            legend: { display: false },
+            // Ativa e configura os números por cima das barras
+            datalabels: {
+                anchor: 'end',    // Fixa o dado no fim da barra
+                align: 'top',      // Coloca o número acima da barra
+                color: '#fff',     // Cor do texto
+                font: { weight: 'bold', size: 12 },
+                offset: 4          // Espaço de 4px entre a barra e o número
+            }
+        },
+        scales: {
+            y: { 
+                beginAtZero: true,
+                grace: '15%',      // Cria espaço extra no topo para o número não ser cortado
+                grid: { color: '#333' }
+            },
+            x: { grid: { display: false } }
+        }
+    }
+}); // <--- Não te esqueças de fechar o parênteses e ponto e vírgula
 
             // Cigarros Mensais
             new Chart(document.getElementById('chartCigarrosMensal'), {
